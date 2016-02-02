@@ -1,14 +1,15 @@
-def executor():
+def executor(selection_option, chrom_to_plot, FDR_thresholds_to_plot):
 
 	import config_variables
 	import itertools
 	import numpy as np
 	from  prepare_interactions_clean import un_string
 	classifiers_clean = config_variables.classifiers_clean
+	
 
 	normalised = False
 	filter_value = config_variables.filter_value
-	chr_interactions_dict_pro_enh = config_variables.chr_interactions_dict_pro_enh
+	#chr_interactions_dict_pro_enh = config_variables.chr_interactions_dict_pro_enh
 	chr_interactions_dict_enh_enh = config_variables.chr_interactions_dict_enh_enh
 
 	dict_chrom_pro_survived = config_variables.dict_chrom_pro_survived
@@ -34,7 +35,7 @@ def executor():
 		sorted_prob_false = np.sort(probabilities_false)
 
 		sorted_thresholds = np.sort(np.unique(np.r_[probabilities_true, probabilities_false]))
-		sorted_thresholds = np.unique(np.r_[np.min(sorted_thresholds)*0.999, sorted_thresholds, np.max(sorted_thresholds)*1.01])
+		sorted_thresholds = np.unique(np.r_[np.min(sorted_thresholds)*0.999, sorted_thresholds, np.max(sorted_thresholds)*1.01]) # min should probably vanish from here take a look at PR_top_MAP_dots_alternative_domain it should be np.unique(np.r_[sorted_thresholds, np.max(sorted_thresholds)*1.01])
 
 		len_prob_true = len(probabilities_true)
 		len_prob_false = len(probabilities_false)
@@ -59,7 +60,7 @@ def executor():
 
 		sorted_thresholds_reverse = sorted_thresholds[::-1]
 
-		return sorted_thresholds_reverse[num_of_probabilities_above_threshold_1], sorted_thresholds_reverse[num_of_probabilities_above_threshold_2], sorted_thresholds_reverse[num_of_probabilities_above_threshold_3]
+		return sorted_thresholds_reverse[num_of_probabilities_above_threshold_1 + 1], sorted_thresholds_reverse[num_of_probabilities_above_threshold_2 + 1], sorted_thresholds_reverse[num_of_probabilities_above_threshold_3 + 1]
 
 	def extract_TSS_coordinates(upstream):
 
@@ -106,6 +107,7 @@ def executor():
 		i_s_f, j_s_f = positive_negative_interactions_for_MAP(chrom)
 
 		if domain:
+			import interacting_domain_clean as interacting_domain
 			if config_variables.TSS_or_intra_genic_for_domain_filter == "Intra_genic": coords_pro_domain = pro_coordinates[indexes_p]
 			elif config_variables.TSS_or_intra_genic_for_domain_filter == "TSS_only": coords_pro_domain = np.column_stack((TSS_coordinates[indexes_p]-1, TSS_coordinates[indexes_p]+1))
 			domain_matrix = interacting_domain.interacting_domains(coords_pro_domain, enh_coordinates[indexes_e], chrom, 'left', True)
@@ -115,16 +117,27 @@ def executor():
 
 		if mode == "promoter_enhancer_interactions":
 
-			chr_interactions_dict_pro_enh = config_variables.chr_interactions_dict_pro_enh
-			true_inter_pro = un_string(chr_interactions_dict_pro_enh[chrom][:, :2]).astype(int)
+			if config_variables.disentagled_features_validation: 
+				chr_interactions_pro_enh = config_variables.chr_interactions_dict_pro_enh_TSS[chrom]
+			else:
+				chr_interactions_pro_enh = config_variables.chr_interactions_dict_pro_enh[chrom]
+
+			#chr_interactions_dict_pro_enh = config_variables.chr_interactions_dict_pro_enh
+			#true_inter_pro = un_string(chr_interactions_dict_pro_enh[chrom][:, :2]).astype(int)
+			true_inter_pro = un_string(chr_interactions_pro_enh[:, :2]).astype(int)
+
 			i_s_t, j_s_t = true_inter_pro[:,0], true_inter_pro[:,1]
+
+			#chr_interactions_dict_pro_enh = config_variables.chr_interactions_dict_pro_enh
+			#true_inter_pro = un_string(chr_interactions_dict_pro_enh[chrom][:, :2]).astype(int)
+			#i_s_t, j_s_t = true_inter_pro[:,0], true_inter_pro[:,1]
 
 			interaction_matrix[:,:] = np.min([np.min(posterior_t), np.min(posterior_f)])*0.999
 			interaction_matrix[i_s_t - total_p, j_s_t + len(indexes_p) - total_e] = posterior_t
 			interaction_matrix[i_s_f - total_p, j_s_f + len(indexes_p) - total_e] = posterior_f
 
 			#--------------------------------------------------------------------------the part to look at for Paolo !
-			np.save("interaction_matrix_float", interaction_matrix) #I'm saving the interaction matrix for you
+			#np.save("interaction_matrix_float", interaction_matrix) #I'm saving the interaction matrix for you
 	
 			if normalised:
 				norm_factors = np.sum(interaction_matrix, axis = 0)
@@ -190,26 +203,48 @@ def executor():
 
 	selected_combinations = np.array(combinations)[[0, 2, 5, 10, 14]].tolist()
 
-	option_ = selected_combinations[-1]
+	option_ = selected_combinations[selection_option]
 	
 	#comb = ",".join([dict_option_[el] for el in option_])
 
-	chrom = chroms_to_infer[0]
+	chrom = chrom_to_plot
 
 	posterior_correl_dist_true, posterior_correl_dist_false = classifiers_clean.posterior_producer([0], option_, total_posterior = False)
 
 	posterior_correl_dist_true_total = list(itertools.chain.from_iterable([posterior_correl_dist_true[chrom_] for chrom_ in chroms_to_infer]))
 	posterior_correl_dist_false_total = list(itertools.chain.from_iterable([posterior_correl_dist_false[chrom_] for chrom_ in chroms_to_infer]))
 
-	threshold_1, threshold_2, threshold_3 = calculate_single_ROC_best_True_sensitivity(posterior_correl_dist_true_total, posterior_correl_dist_false_total, 0.1, 0.2, 0.3)
+	#threshold_1, threshold_2, threshold_3 = calculate_single_ROC_best_True_sensitivity(posterior_correl_dist_true_total, posterior_correl_dist_false_total, 0.1, 0.2, 0.3)
+	#print "threshold_TPR_10%: ", threshold_1, "threshold_TPR_20%: ", threshold_2, "threshold_TPR_30%: ", threshold_3
 
-	i_s_t_filt_1, j_s_t_filt_1, i_s_f_filt_1, j_s_f_filt_1 = interactions_above_threshold(posterior_correl_dist_true, posterior_correl_dist_false, 1., threshold_1, chrom)
-	i_s_t_filt_2, j_s_t_filt_2, i_s_f_filt_2, j_s_f_filt_2 = interactions_above_threshold(posterior_correl_dist_true, posterior_correl_dist_false, threshold_1, threshold_2, chrom)
-	i_s_t_filt_3, j_s_t_filt_3, i_s_f_filt_3, j_s_f_filt_3 = interactions_above_threshold(posterior_correl_dist_true, posterior_correl_dist_false, threshold_2, threshold_3, chrom)
+	comb = ",".join([config_variables.dict_option[el] for el in option_])
 
-	i_s_t_filt_1_dom, j_s_t_filt_1_dom, i_s_f_filt_1_dom, j_s_f_filt_1_dom = interactions_above_threshold(posterior_correl_dist_true, posterior_correl_dist_false, 1., threshold_1, chrom, domain = True)
-	i_s_t_filt_2_dom, j_s_t_filt_2_dom, i_s_f_filt_2_dom, j_s_f_filt_2_dom = interactions_above_threshold(posterior_correl_dist_true, posterior_correl_dist_false, threshold_1, threshold_2, chrom, domain = True)
-	i_s_t_filt_3_dom, j_s_t_filt_3_dom, i_s_f_filt_3_dom, j_s_f_filt_3_dom = interactions_above_threshold(posterior_correl_dist_true, posterior_correl_dist_false, threshold_2, threshold_3, chrom, domain = True)
+	name_of_output_file_with_thresholds_estimated_on_odd_even_chromosomes = "file_with_FDRs_{0}_{1}_smo_{2}_{3}".format("chr1", "chr2", config_variables.use_smooth_prior_for_estimation, config_variables.number_of_bins)
+
+	name_of_output_file_with_thresholds_estimated_on_odd_even_chromosomes += "_{0}_{1}_{2}".format(config_variables.upstream, config_variables.downstream, config_variables.upstream_t_s)
+
+	if config_variables.disentagled_features_validation:
+		name_of_output_file_with_thresholds_estimated_on_odd_even_chromosomes += "_TSS"
+	else:
+		name_of_output_file_with_thresholds_estimated_on_odd_even_chromosomes += "_GENE"
+
+	FDR_thresholds = np.loadtxt(name_of_output_file_with_thresholds_estimated_on_odd_even_chromosomes, dtype = str, delimiter = "\t")
+
+	thresholds_test_est_FDR_dist_data, thresholds_test_est_FDR_dist, thresholds_test_est_FDR_data = np.zeros_like(config_variables.FDR), np.zeros_like(config_variables.FDR), np.zeros_like(config_variables.FDR)
+
+	for ind, FDR in enumerate(FDR_thresholds_to_plot):
+
+		thresholds_test_est_FDR_dist_data[ind] = FDR_thresholds[(FDR_thresholds[:,0] == comb) * (FDR_thresholds[:,2].astype(float) == FDR), -1][0]
+		
+	thresholds_test_est_FDR_dist_data = thresholds_test_est_FDR_dist_data.astype(float)
+
+	i_s_t_filt_1, j_s_t_filt_1, i_s_f_filt_1, j_s_f_filt_1 = interactions_above_threshold(posterior_correl_dist_true, posterior_correl_dist_false, 1., thresholds_test_est_FDR_dist_data[0], chrom)
+	i_s_t_filt_2, j_s_t_filt_2, i_s_f_filt_2, j_s_f_filt_2 = interactions_above_threshold(posterior_correl_dist_true, posterior_correl_dist_false, thresholds_test_est_FDR_dist_data[0], thresholds_test_est_FDR_dist_data[1], chrom)
+	i_s_t_filt_3, j_s_t_filt_3, i_s_f_filt_3, j_s_f_filt_3 = interactions_above_threshold(posterior_correl_dist_true, posterior_correl_dist_false, thresholds_test_est_FDR_dist_data[1], thresholds_test_est_FDR_dist_data[2], chrom)
+
+	#i_s_t_filt_1_dom, j_s_t_filt_1_dom, i_s_f_filt_1_dom, j_s_f_filt_1_dom = interactions_above_threshold(posterior_correl_dist_true, posterior_correl_dist_false, 1., threshold_1, chrom, domain = True)
+	#i_s_t_filt_2_dom, j_s_t_filt_2_dom, i_s_f_filt_2_dom, j_s_f_filt_2_dom = interactions_above_threshold(posterior_correl_dist_true, posterior_correl_dist_false, threshold_1, threshold_2, chrom, domain = True)
+	#i_s_t_filt_3_dom, j_s_t_filt_3_dom, i_s_f_filt_3_dom, j_s_f_filt_3_dom = interactions_above_threshold(posterior_correl_dist_true, posterior_correl_dist_false, threshold_2, threshold_3, chrom, domain = True)
 
 
 
@@ -235,7 +270,7 @@ def executor():
 
 	gene_names = np.loadtxt(name_of_time_series_promoter_file_for_TSS_start, dtype = str)
 
-	chrom = chroms_to_infer[0]
+	
 
 	chrom_distant_enh = dict_chrom_distant[chrom]
 	chrom_enh_survived = dict_chrom_enh_survived[chrom]
@@ -268,9 +303,14 @@ def executor():
 	ax = fig.add_subplot(111)
 	simpleaxis(ax)
 	ax.locator_params(nbins=4)
-	x_limits = [1.6*10**7, 1.8*10**7]
-	plt.xlim(x_limits)	
-
+	x_limits = [4.175*10**7, 4.45*10**7]
+	plt.xlim(x_limits)
+	
+	plt.figtext(0.02, 0.63+0.02,'enhancer', fontsize=20)
+	plt.figtext(0.02, 0.21+0.02,'extended gene', fontsize=20)
+	plt.figtext(0.125, 0.00, chrom, fontsize=20)
+	plt.figtext(0.9215-0.025, 0.24, "+ strand", fontsize=20)
+	plt.figtext(0.9215-0.0275, 0.19, " -  strand", fontsize=20)#0.925-0.025
 
 	x = [min([int(chr_genes[:,1][0]), int(chr_enhancers[:,1][0])]) - 1000, max(int(chr_genes[:,2][-1]), int(chr_enhancers[:,1][-1]))  + 1000]
 	line, = ax.plot(x, np.zeros_like(x), lw = 1.0, color='black')
@@ -346,6 +386,22 @@ def executor():
 
 	#plt.xlim([int(chr_genes[:,1][80]), int(chr_enhancers[:,2][133])])
 	ax.set_ylim(higth_of_enhancer -2, higth_of_promoter + 7)
-	plt.show()
+
+	from matplotlib.backends.backend_pdf import PdfPages
+
+	name_of_output_cartoon_file = 'cartoon_{0}_{1}_{2}_{3}_average_PolII'.format(",".join([comb]), config_variables.one_sided_or_two_sided, config_variables.use_smooth_prior_for_estimation, config_variables.number_of_bins)
+
+	name_of_output_cartoon_file += "_{0}_{1}_{2}".format(config_variables.upstream, config_variables.downstream, config_variables.upstream_t_s)
+
+	if config_variables.disentagled_features_validation: 
+
+		name_of_output_cartoon_file += "_TSS" 
+	else:
+		name_of_output_cartoon_file += "_GENE"
+
+	pdf = PdfPages(name_of_output_cartoon_file + ".pdf")
+
+	pdf.savefig()
+	pdf.close(); plt.show()
 
 

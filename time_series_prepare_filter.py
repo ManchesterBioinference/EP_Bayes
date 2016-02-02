@@ -8,7 +8,7 @@ def time_series_prepare(name_of_pro_dataset_to_open, name_of_enh_dataset_to_open
 
 	for name_of_dataset_to_open, norm_name in zip(list_of_datasets, list(datasets_names)*2):
 
-		norm_n = np.loadtxt('./data/{0}_normalising_constants.gz'.format(norm_name), dtype = float, usecols=(0,))[:time_points]
+		norm_n = np.loadtxt('{0}_normalising_constants'.format(norm_name), dtype = float, usecols=(0,))[:time_points]
 		
 		dataset_time_series = np.loadtxt(name_of_dataset_to_open, dtype = str, delimiter = '\t')
 
@@ -25,7 +25,7 @@ def time_series_prepare_mean_std(name_of_pro_dataset_to_open, name_of_enh_datase
 
 	for name_of_dataset_to_open, norm_name in zip(list_of_datasets, list(datasets_names)*2):
 
-		norm_n = np.loadtxt('./data/{0}_normalising_constants.gz'.format(norm_name), dtype = float, usecols=(0,))[:time_points]
+		norm_n = np.loadtxt('{0}_normalising_constants'.format(norm_name), dtype = float, usecols=(0,))[:time_points]
 		
 		dataset_time_series = np.loadtxt(name_of_dataset_to_open, dtype = str, delimiter = '\t')
 
@@ -49,7 +49,7 @@ def time_series_prepare_concat(name_of_pro_dataset_to_open, name_of_enh_dataset_
 
 			name = name + '_' + norm_name
 
-			norm_n = np.loadtxt('./data/{0}_normalising_constants.gz'.format(norm_name), dtype = float, usecols=(0,))[:time_points]
+			norm_n = np.loadtxt('{0}_normalising_constants'.format(norm_name), dtype = float, usecols=(0,))[:time_points]
 		
 			dataset_time_series = np.loadtxt(name_of_dataset_to_open, dtype = str, delimiter = '\t')
 

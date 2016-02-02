@@ -1,9 +1,7 @@
 def interacting_domains(chrom_pro_coord, chrom_ER_coord, chrom, state, matrix_version = True): # state 'left' or 'right'		
 	import numpy as np
-	import config_variables
-	data_folder = config_variables.data_folder
 
-	interacting_domains = np.loadtxt(data_folder+'report_hESC_Combined_converted.csv.gz', dtype = str, usecols = (4, 12, 13), delimiter = ',')
+	interacting_domains = np.loadtxt('report_hESC_Combined_converted.csv', dtype = str, usecols = (4, 12, 13), delimiter = ',')
 	interacting_domains_chrom = interacting_domains[interacting_domains[:, 0] == chrom][:, 1:].astype(int)
 
 	size_domains = len(interacting_domains_chrom)

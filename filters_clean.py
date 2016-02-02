@@ -17,7 +17,7 @@ def extract_TSS_coordinates(upstream):
 	data = np.loadtxt(name_of_time_series_promoter_file_for_TSS_start, dtype = str,  delimiter = '\t')	
 	plus_strand = data[:, 4] == '+'
 	TSS_coordinates = np.zeros(len(plus_strand), int)
-	TSS_coordinates[plus_strand] = data[plus_strand, 1].astype(int) + upstream
+	TSS_coordinates[plus_strand] = data[plus_strand, 1].astype(int) - upstream
 	TSS_coordinates[np.invert(plus_strand)] = data[np.invert(plus_strand), 2].astype(int) + upstream
 
 	return TSS_coordinates

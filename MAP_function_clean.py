@@ -38,9 +38,15 @@ def MAP(posterior_t, posterior_f, chrom, i_s_f, j_s_f):
 
 	if mode == "promoter_enhancer_interactions":
 
-		chr_interactions_dict_pro_enh = config_variables.chr_interactions_dict_pro_enh
-		true_inter_pro = un_string(chr_interactions_dict_pro_enh[chrom][:, :2]).astype(int)
+		if config_variables.disentagled_features_validation: 
+			chr_interactions_pro_enh = config_variables.chr_interactions_dict_pro_enh_TSS[chrom]
+		else:
+			chr_interactions_pro_enh = config_variables.chr_interactions_dict_pro_enh[chrom]
+
+		true_inter_pro = un_string(chr_interactions_pro_enh[:, :2]).astype(int)
+
 		i_s_t, j_s_t = true_inter_pro[:,0], true_inter_pro[:,1]
+
 
 		interaction_matrix[:,:] = np.min([np.min(posterior_t), np.min(posterior_f)])*0.99
 		interaction_matrix[i_s_t - total_p, j_s_t + len(indexes_p) - total_e] = posterior_t

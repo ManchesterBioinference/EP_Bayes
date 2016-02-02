@@ -51,7 +51,16 @@ for classification_of_interactions in ["positive_interactions", "negative_intera
 
 def interactions_extractor(chrom):
 
-	true_pro_enh_indexes = un_string(config_variables.chr_interactions_dict_pro_enh[chrom])
+	if config_variables.disentagled_features_validation: 
+		chr_interactions_pro_enh = config_variables.chr_interactions_dict_pro_enh_TSS[chrom]
+	else:
+		chr_interactions_pro_enh = config_variables.chr_interactions_dict_pro_enh[chrom]
+
+	true_pro_enh_indexes = un_string(chr_interactions_pro_enh[:, :2])
+
+	#true_pro_enh_indexes = un_string(config_variables.chr_interactions_dict_pro_enh[chrom])
+
+		
 	prom_enh_false_interactions = chrom_specific_negative_interactions.chrom_specific_negative_interactions(chrom, mode)
 
 	enh_coordinates, pro_coordinates, indexes_p, indexes_e, total_p, total_e = chrom_specific_negative_interactions.initialise_variables(chrom)
@@ -99,7 +108,7 @@ def MOG_classifier(option_correl, total_posterior = False):
 
 		start = time.time()
 
-		total_matrix_2 = sum(pool.imap_unordered(pararell_methods.pararell_calc_ne, a))
+		total_matrix = sum(pool.imap_unordered(pararell_methods.pararell_calc_ne, a))
 		pool.close()
 		pool.join()
 		end = time.time()
@@ -240,7 +249,7 @@ def classifier_alternative(probs_true, probs_false, mask_of_existing_interaction
 def posterior_producer_one_promoter_model(option_dist, option_correl, total_posterior = False):
 
 
-	option_2 = option_dist + ( np.array(option_correl) + 1).tolist()
+	option_2 = option_dist + ( np.array(option_correl) + 1 ).tolist()
 	print option_2
 	posterior_of_option = {}
 

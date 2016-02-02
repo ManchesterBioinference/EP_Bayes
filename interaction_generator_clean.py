@@ -11,16 +11,16 @@ def generator(pro_survived, enh_survived, domain, max_path):
 	dataset_time_series_dict = config_variables.dataset_time_series_dict
 	TSS_or_intra_genic_for_domain_filter = config_variables.TSS_or_intra_genic_for_domain_filter
 	name_of_time_series_promoter_file_for_TSS_start = config_variables.name_of_time_series_promoter_file_for_TSS_start
-	temp_output = config_variables.temp_output
+
 	
 	#parameters-------------------------
-	ovenh_ovenh_pro_pro_version = False
-	max_pro_enh_mode = True
+	#ovenh_ovenh_pro_pro_version = False
+	#max_pro_enh_mode = True
 	#-----------------------------------
 
-	enhancer_enhancer_inter = np.loadtxt(temp_output + 'enhancer_enhancer_interactions_{0}_{1}'.format(upstream, downstream), usecols = (0,1,2), dtype = str, delimiter = '\t') 
-	promoter_promoter_inter = np.loadtxt(temp_output + 'promoter_promoter_interactions_{0}_{1}'.format(upstream, downstream), usecols = (0,1,2), dtype = str, delimiter = '\t') 
-	promoter_enhancer_inter = np.loadtxt(temp_output + 'promoter_enhancer_interactions_{0}_{1}'.format(upstream, downstream), usecols = (0,1,2), dtype = str, delimiter = '\t') 
+	enhancer_enhancer_inter = np.loadtxt('enhancer_enhancer_interactions_{0}_{1}'.format(upstream, downstream), usecols = (0,1,2), dtype = str, delimiter = '\t') 
+	promoter_promoter_inter = np.loadtxt('promoter_promoter_interactions_{0}_{1}'.format(upstream, downstream), usecols = (0,1,2), dtype = str, delimiter = '\t') 
+	promoter_enhancer_inter = np.loadtxt('promoter_enhancer_interactions_{0}_{1}'.format(upstream, downstream), usecols = (0,1,2), dtype = str, delimiter = '\t') 
 
 	un_stringer = lambda x: int(re.findall('\d+', x)[0])
 	
@@ -138,7 +138,7 @@ def generator(pro_survived, enh_survived, domain, max_path):
 
 		return pro_enh_indexes_list, promoter_enhancer_inter, pro_pro_indexes_list, promoter_promoter_inter
 
-	pro_enh_indexes_list, promoter_enhancer_inter, pro_pro_indexes_list, promoter_promoter_inter = ER_enhancer_Non_enhancer_pro_adder(pro_enh_indexes_list, promoter_enhancer_inter, pro_pro_indexes_list, promoter_promoter_inter)
+	#pro_enh_indexes_list, promoter_enhancer_inter, pro_pro_indexes_list, promoter_promoter_inter = ER_enhancer_Non_enhancer_pro_adder(pro_enh_indexes_list, promoter_enhancer_inter, pro_pro_indexes_list, promoter_promoter_inter) # it doesn't do a thing if you take only distal enhancers. Overlapping enhancers are then not among distal enhancers which you allow to form with with promoters. 
 
 
 	def ER_ovenh_pro_pro_adder():
@@ -170,7 +170,7 @@ def generator(pro_survived, enh_survived, domain, max_path):
 				filtered_promoter_enhancer_inter.append(el)
 		return np.array(filtered_promoter_enhancer_inter)
 
-	if not(max_pro_enh_mode): promoter_enhancer_inter = ER_ovenh_pro_pro_adder()
+	#if not(max_pro_enh_mode): promoter_enhancer_inter = ER_ovenh_pro_pro_adder()
 
 	#if the aim is to maximise number of promoter-enhancer interactions it could be best to set it to false
 
@@ -221,7 +221,7 @@ def generator(pro_survived, enh_survived, domain, max_path):
 			data = np.loadtxt(name_of_time_series_promoter_file_for_TSS_start, dtype = str,  delimiter = '\t')	
 			plus_strand = data[:, 4] == '+'
 			TSS_coordinates = np.zeros(len(plus_strand), int)
-			TSS_coordinates[plus_strand] = data[plus_strand, 1].astype(int) + upstream
+			TSS_coordinates[plus_strand] = data[plus_strand, 1].astype(int) - upstream
 			TSS_coordinates[np.invert(plus_strand)] = data[np.invert(plus_strand), 2].astype(int) + upstream
 
 			return TSS_coordinates

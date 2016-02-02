@@ -1,7 +1,6 @@
 def concatenator(cluster_mode, merge_time_series_option, count_filter_each_data_set, pol2_rep_correl_filt = False, distant_enh_only = False):
 
 	import config_variables
-	temp_output = config_variables.temp_output
 	dataset_time_series_dict = config_variables.dataset_time_series_dict
 	dataset_time_series_dict_mean_std = config_variables.dataset_time_series_dict_mean_std
 	time_points = config_variables.time_points
@@ -12,7 +11,7 @@ def concatenator(cluster_mode, merge_time_series_option, count_filter_each_data_
 	name = name_of_time_series_file[cluster_mode]
 	name_of_overlap_file_dict = config_variables.name_of_overlap_file_dict
 
-	merge_time_series_option_ = [name + '_' + el + ".gz" for el in merge_time_series_option]
+	merge_time_series_option_ = [name + '_' + el for el in merge_time_series_option]
 	total_mask = np.ones(len(dataset_time_series_dict[link_data_set_name_to_file_name[cluster_mode]['ER']][0]), bool)
 
 	if type(pol2_rep_correl_filt) == float:
@@ -39,21 +38,24 @@ def concatenator(cluster_mode, merge_time_series_option, count_filter_each_data_
 	name_of_merged_time_series_to_cluster = "{0}_{1}".format(name_of_merged_time_series_to_cluster, count_filter_each_data_set)
 
 	if type(pol2_rep_correl_filt) == float: name_of_merged_time_series_to_cluster = name_of_merged_time_series_to_cluster + "_cor_{0}".format(pol2_rep_correl_filt)
-	if distant_enh_only: name_of_merged_time_series_to_cluster = name_of_merged_time_series_to_cluster + "distant_only"
+	if distant_enh_only: name_of_merged_time_series_to_cluster = name_of_merged_time_series_to_cluster + "_distant_only"
 
 	survived_indexes = np.where(total_mask)[0]
+	import os as os
+	path_to_R = os.getcwd() + "/R_scripts/"
+	np.savetxt(path_to_R + name_of_merged_time_series_to_cluster + "_survived_indexes", survived_indexes)
+	np.savetxt(path_to_R + name_of_merged_time_series_to_cluster, concat_set, delimiter=',')
 
-	np.savetxt(temp_output + name_of_merged_time_series_to_cluster[7:] + "_survived_indexes", survived_indexes)
-	np.savetxt(temp_output + name_of_merged_time_series_to_cluster[7:], concat_set, delimiter=',')
-
-	return name_of_merged_time_series_to_cluster[7:]
+	return name_of_merged_time_series_to_cluster
 
 
 def AP_clustering(name_of_file_clustered, number_of_clusters):
-
-	import os #or popen
 	
+	import os as os  #or popen
+	cwd = os.getcwd()
+	path_to_R = os.getcwd() + "/R_scripts/"
+	os.chdir(path_to_R)
 	os.system("Rscript AP_clustering_executor.R {0} {1}".format(name_of_file_clustered, number_of_clusters))
-
+	os.chdir(cwd)
 
 

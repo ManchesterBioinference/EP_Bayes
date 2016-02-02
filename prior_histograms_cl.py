@@ -12,6 +12,7 @@ def prior_bins_prob_and_plotter(prior_elements, low_dist, up_dist, use_smooth_pr
 	likelihood_cross_validation = config_variables.likelihood_cross_validation
 	distant_enh_only = config_variables.distant_enh_only
 	interacting_enhancers_only = config_variables.interacting_enhancers_only
+	chroms_to_infer=config_variables.chroms_to_infer
 
 
 	def bins_prep_adaptive(array, l_limit, u_limit, how_many_in_bin):
@@ -66,7 +67,7 @@ def prior_bins_prob_and_plotter(prior_elements, low_dist, up_dist, use_smooth_pr
 		if not(domain): 
 			if mode == 'promoter_enhancer_interactions': 
 				if interacting_enhancers_only: initiatie_number_of_bins = iter([25, 20, 2000, 2000])
-				else: initiatie_number_of_bins = iter([25, 20, 10000, 10000])
+				else: initiatie_number_of_bins = iter([25, 20, 2000, 2000])
 
 			else: 
 				if interacting_enhancers_only: initiatie_number_of_bins = iter([80, 70, 20000, 20000])
@@ -237,7 +238,7 @@ def prior_bins_prob_and_plotter(prior_elements, low_dist, up_dist, use_smooth_pr
 	bins={}
 	optimum = {}
 
-	number_of_bins = [2000,2000]
+	number_of_bins = config_variables.number_of_bins
 	#number_of_samples = [800000, 800000]
 
 
@@ -365,13 +366,39 @@ def prior_bins_prob_and_plotter(prior_elements, low_dist, up_dist, use_smooth_pr
 				[prior_elements[mode][classification_of_interactions]["distance"]["prior_frequencies"], 
 				prior_elements[mode][classification_of_interactions]["distance"]["prior_bins"]] = prob_smooth_, bins_smooth[classification_of_interactions]
 
-	if plot_atr or plot_atr_kernel:	x1,x2,y1,y2 = plt.axis(); plt.axis((x1,x2,0.,y2*1.2)); plt.legend(); pdf = PdfPages('multipage_priors_average{0}.pdf'.format(one_sided_or_two_sided)); pdf.savefig()
+
+	if config_variables.mode_of_code == "FULL":
+		name_of_histogram_file = 'multipage_priors_average_{0}_{1}'.format(one_sided_or_two_sided, config_variables.mode_of_code)
+
+	else:
+		name_of_histogram_file = 'multipage_priors_average_{0}_{1}'.format(one_sided_or_two_sided, "ODD")
+		#name_of_histogram_file = 'multipage_priors_average{0}_{1}_{2}'.format(one_sided_or_two_sided, "_".join(chroms_in_prior), "_".join(chroms_to_infer))
+
+	if plot_atr and plot_atr_kernel:
+		name_of_histogram_file = name_of_histogram_file + "_kern_hist"
+	elif plot_atr_kernel:
+		name_of_histogram_file = name_of_histogram_file + "_kern"
+	elif plot_atr:
+		name_of_histogram_file = name_of_histogram_file + "_hist"
+	else:
+		pass
+
+	name_of_histogram_file = name_of_histogram_file + "{0}_{1}_{2}_{3}".format(config_variables.number_of_bins, config_variables.upstream, config_variables.downstream, config_variables.upstream_t_s)
+
+	if config_variables.disentagled_features_validation: 
+		name_of_histogram_file += "_TSS" 
+	else:
+		name_of_histogram_file += "_GENE"
+
+
+
+	if plot_atr or plot_atr_kernel:	x1,x2,y1,y2 = plt.axis(); plt.axis((x1,x2,0.,y2*1.2)); plt.legend(); pdf = PdfPages(name_of_histogram_file + ".pdf"); pdf.savefig()
 
 	prob={}
 	bins={}
 	attribute_={}
 
-	number_of_bins = [2000,2000]
+	number_of_bins = config_variables.number_of_bins
 	#number_of_samples = [800000, 800000] 
 
 	for i, data_set_name in enumerate(dataset_names_option):	
@@ -410,7 +437,8 @@ def prior_bins_prob_and_plotter(prior_elements, low_dist, up_dist, use_smooth_pr
 				prior_elements[mode][classification_of_interactions]["correlation"][data_set_name]["prior_bins"]] = prob_smooth_, bins_smooth[classification_of_interactions]
 
 		if plot_atr or plot_atr_kernel:	x1,x2,y1,y2 = plt.axis(); plt.axis((x1,x2,0,y2*1.2)); plt.legend(); pdf.savefig()	#plt.ylim(0, plt.ylim()[0]); 
-	if plot_atr_kernel or plot_atr: pdf.close(); plt.show()
+	
+	if plot_atr_kernel or plot_atr: pdf.close(); plt.close('all')#plt.show()
 		
 	return prior_elements
 

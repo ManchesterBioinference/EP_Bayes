@@ -90,9 +90,15 @@ def executor():
 			interacting_non_intracting_mask = {}
 
 			total_number_of_interacting_enhancers = 0
+
+			if config_variables.disentagled_features_validation: 
+				chr_interactions_dict_pro_enh = config_variables.chr_interactions_dict_pro_enh_TSS
+			else:
+				chr_interactions_dict_pro_enh = config_variables.chr_interactions_dict_pro_enh
+
 			for chrom___ in chroms_to_infer:
 
-				mask = np.in1d(np.unique(un_string(config_variables.chr_interactions_dict_pro_enh[chrom___])[:,1]), chrom_interacting_enhancers_pro[chrom___])
+				mask = np.in1d(np.unique(un_string(chr_interactions_dict_pro_enh[chrom___])[:,1]), chrom_interacting_enhancers_pro[chrom___])
 				if domain_atr == "outside_domain":
 					interacting_non_intracting_mask[chrom___] = np.invert(mask)
 				elif domain_atr == "within_domain":	

@@ -42,7 +42,7 @@ def extract_TSS_coordinates(upstream):
 	data = np.loadtxt(config_variables.name_of_time_series_promoter_file_for_TSS_start, dtype = str,  delimiter = '\t')	
 	plus_strand = data[:, 4] == '+'
 	TSS_coordinates = np.zeros(len(plus_strand), int)
-	TSS_coordinates[plus_strand] = data[plus_strand, 1].astype(int) + upstream
+	TSS_coordinates[plus_strand] = data[plus_strand, 1].astype(int) - upstream
 	TSS_coordinates[np.invert(plus_strand)] = data[np.invert(plus_strand), 2].astype(int) + upstream
 
 	return TSS_coordinates
@@ -120,6 +120,9 @@ def chrom_specific_negative_interactions(chrom, mode, prior_mode = False):
 			mask_non_interacting_promoters = np.invert(mask_interacting_promoters)	
 			interaction_matrix[mask_non_interacting_promoters, len(indexes_p):] = True # it's equivalent to interacting_enhancers_mask_invert
 
+		#if config_variables.disentagled_features_validation: 
+			#true_pro_enh_indexes = un_string(config_variables.chr_interactions_dict_pro_enh_TSS[chrom])
+			#chrom_interacting_enhancers_pro = np.unique(true_pro_enh_indexes[:, 1])
 
 		mask_interacting_enhancers = np.zeros(length_chr).astype(bool)# we don't have to filter out enhancers which didn't pass the filter thresold. Since we consider only the interacting enhancers that's a subset of survived enhnacers.
 		mask_interacting_enhancers[chrom_interacting_enhancers_pro - total_e + len(indexes_p)] = True
@@ -235,9 +238,13 @@ def distance_and_correl_of_interactions(chrom, negative_of_type_of_interactions,
 
 
 		if "promoter_enhancer_interactions" in mode:
-			chr_interactions_pro_enh = chr_interactions_dict_pro_enh[chrom]	
-			pro_enh_indexes = un_string(chr_interactions_pro_enh[:, :2])
 
+			if config_variables.disentagled_features_validation: 
+				chr_interactions_pro_enh = config_variables.chr_interactions_dict_pro_enh_TSS[chrom]
+			else:
+				chr_interactions_pro_enh = chr_interactions_dict_pro_enh[chrom]
+
+			pro_enh_indexes = un_string(chr_interactions_pro_enh[:, :2])
 			dist_from_enhancer_to_promoters = distances_matrix[len(indexes_p):, 0: len(indexes_p)]
 			
 			#if domain:
@@ -286,7 +293,12 @@ def distance_and_correl_of_interactions(chrom, negative_of_type_of_interactions,
 		print 'correlator: stop'
 
 		if "promoter_enhancer_interactions" in mode:
-			chr_interactions_pro_enh = chr_interactions_dict_pro_enh[chrom]	
+
+			if config_variables.disentagled_features_validation: 
+				chr_interactions_pro_enh = config_variables.chr_interactions_dict_pro_enh_TSS[chrom]
+			else:
+				chr_interactions_pro_enh = chr_interactions_dict_pro_enh[chrom]
+
 			pro_enh_indexes = un_string(chr_interactions_pro_enh[:, :2])
 
 			correl_from_enhancer_to_promoters = chrom_correlations_matrix[len(indexes_p):len(indexes_p) + len(indexes_e), 0: len(indexes_p)]
