@@ -13,6 +13,7 @@ def prior_bins_prob_and_plotter(prior_elements, low_dist, up_dist, use_smooth_pr
 	distant_enh_only = config_variables.distant_enh_only
 	interacting_enhancers_only = config_variables.interacting_enhancers_only
 	chroms_to_infer=config_variables.chroms_to_infer
+	results_folder = config_variables.results_folder
 
 
 	def bins_prep_adaptive(array, l_limit, u_limit, how_many_in_bin):
@@ -368,10 +369,10 @@ def prior_bins_prob_and_plotter(prior_elements, low_dist, up_dist, use_smooth_pr
 
 
 	if config_variables.mode_of_code == "FULL":
-		name_of_histogram_file = 'multipage_priors_average_{0}_{1}'.format(one_sided_or_two_sided, config_variables.mode_of_code)
+		name_of_histogram_file = results_folder + 'multipage_priors_average_{0}_{1}'.format(one_sided_or_two_sided, config_variables.mode_of_code)
 
 	else:
-		name_of_histogram_file = 'multipage_priors_average_{0}_{1}'.format(one_sided_or_two_sided, "ODD")
+		name_of_histogram_file = results_folder + 'multipage_priors_average_{0}_{1}'.format(one_sided_or_two_sided, "ODD")
 		#name_of_histogram_file = 'multipage_priors_average{0}_{1}_{2}'.format(one_sided_or_two_sided, "_".join(chroms_in_prior), "_".join(chroms_to_infer))
 
 	if plot_atr and plot_atr_kernel:

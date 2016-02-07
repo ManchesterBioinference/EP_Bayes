@@ -25,8 +25,9 @@ def executor(selection_option):
 
 	mode = config_variables.mode
 	chroms_to_infer = config_variables.chroms_to_infer
+	results_folder = config_variables.results_folder
 
-	gene_names = np.loadtxt("Homo_sapiens.GRCh37.75.gtf_filtered_gene_joint_2_cleaned_chr_sorted_sorted_ordered", dtype = str, usecols = (3,))	
+	gene_names = np.loadtxt(config_variables.name_of_time_series_promoter_file_for_TSS_start, dtype = str, usecols = (3,))	
 
 	stuff = [1, 2, 3, 4]
 	combinations = []
@@ -244,7 +245,7 @@ def executor(selection_option):
 	comb = ",".join([dict_option[el] for el in option_])
 
 
-	name_of_output_file_with_thresholds_estimated_on_odd_even_chromosomes = "file_with_FDRs_{0}_{1}_smo_{2}_{3}".format("chr1", "chr2", config_variables.use_smooth_prior_for_estimation, config_variables.number_of_bins)
+	name_of_output_file_with_thresholds_estimated_on_odd_even_chromosomes = results_folder + "file_with_FDRs_{0}_{1}_smo_{2}_{3}".format("chr1", "chr2", config_variables.use_smooth_prior_for_estimation, config_variables.number_of_bins)
 
 	name_of_output_file_with_thresholds_estimated_on_odd_even_chromosomes += "_{0}_{1}_{2}".format(config_variables.upstream, config_variables.downstream, config_variables.upstream_t_s)
 
@@ -275,7 +276,7 @@ def executor(selection_option):
 			labels = [0]
 			to_save = get_genes_function(labels, option_, float(thresholds_test_est_FDR_dist_data))
 
-			name_of_output_file = "clusters_genes_vs_counts_prob_distant_all_{0}_{1}_smo_{2}_proximal_version_PR_met".format(FDR, ",".join([comb]), config_variables.use_smooth_prior_for_estimation)
+			name_of_output_file = results_folder + "clusters_genes_vs_counts_prob_distant_all_{0}_{1}_smo_{2}_proximal_version_PR_met".format(FDR, ",".join([comb]), config_variables.use_smooth_prior_for_estimation)
 
 			name_of_output_file += "_{0}_{1}_{2}".format(config_variables.upstream, config_variables.downstream, config_variables.upstream_t_s)
 

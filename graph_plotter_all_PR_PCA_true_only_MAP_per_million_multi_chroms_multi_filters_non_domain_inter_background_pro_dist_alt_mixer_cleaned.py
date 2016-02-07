@@ -1,4 +1,5 @@
-def executor(PR_CURVES = "SELECTIVE", mode_of_code = "EVEN", mode_of_features_and_interactions = "FEATURES_AND_INTERACTIONS_TOGETHER", GENE_OR_PROMOTER_MODE = "GENE_MODE", redo_raw_CHIA_PET_interactions = True, rising_of_falling_POL2_or_ER = ["ER", "Pol2"][1], plot_TF_enrichments_in_cluster = False, upstream = 300, downstream = 0, upstream_t_s = 300, downstream_t_s = 0, do_clustering = False, re_do_clustering = False, cluster_figure_selection = None, DB_version = False):
+def executor(PR_CURVES = "SELECTIVE", mode_of_code = "EVEN", mode_of_features_and_interactions = "FEATURES_AND_INTERACTIONS_TOGETHER", GENE_OR_PROMOTER_MODE = "GENE_MODE", redo_raw_CHIA_PET_interactions = True, rising_of_falling_POL2_or_ER = ["ER", "Pol2"][1], plot_TF_enrichments_in_cluster = False, upstream = 300, downstream = 0, upstream_t_s = 300, downstream_t_s = 0, do_clustering = False, re_do_clustering = False, cluster_figure_selection = None, DB_version = False, calculate_number_of_within_domain_interactions = True):
+
 
 	import numpy as np
 	import re
@@ -14,6 +15,26 @@ def executor(PR_CURVES = "SELECTIVE", mode_of_code = "EVEN", mode_of_features_an
 	import smooth_correl
 	import smooth_priors_domain
 	from matplotlib.backends.backend_pdf import PdfPages
+
+	copy_and_paste_mode = False
+
+	if copy_and_paste_mode:
+		PR_CURVES = "SELECTIVE"
+		mode_of_code = "FULL"
+		mode_of_features_and_interactions = "FEATURES_AND_INTERACTIONS_TOGETHER"
+		GENE_OR_PROMOTER_MODE = "GENE_MODE"
+		redo_raw_CHIA_PET_interactions = True
+		rising_of_falling_POL2_or_ER = ["ER", "Pol2"][1]
+		plot_TF_enrichments_in_cluster = False
+		upstream = 300
+		downstream = 0
+		upstream_t_s = 300
+		downstream_t_s = 0
+		do_clustering = False
+		re_do_clustering = False
+		cluster_figure_selection = None
+		DB_version = False
+		calculate_number_of_within_domain_interactions = True
 
 	#np.seterr(all=None, divide='raise', over=None, under=None, invalid=None)
 
@@ -43,19 +64,29 @@ def executor(PR_CURVES = "SELECTIVE", mode_of_code = "EVEN", mode_of_features_an
 	filter_value = filter_values[0]
 	number_of_bins = 4000, 4000 # to implement-easy
 
-	FDR = np.array([0.15, 0.2 ,  0.25,  0.3 ,  0.35,  0.4])
+	FDR = np.array([0.2,  0.25,  0.3,  0.35,  0.4])# add 0.1
+
+	import os
+	data_folder = "./data/"
+	temp_output = "./temp_output/"
+	results_folder = "./results/"
+
+	if not os.path.exists(temp_output): os.makedirs(temp_output)
+	if not os.path.exists(results_folder): os.makedirs(results_folder)
 
 	#scripts:
+	chrom_names = np.array(map(lambda x: "chr{0}".format(x), np.r_[np.arange(1, 23).astype(dtype='S2'), ['X'], ['Y']]))
 
 	if mode_of_code == "FULL":
 		chroms_in_prior = np.arange(0,23,1)#+1#np.arange(0,13,1)#np.arange(0,13,1)
 		chroms_to_infer = np.arange(0,23,1)#np.arange(0,23,2)#np.arange(0,13,1)#np.arange(0,23,2)#np.arange(0,13,1)
 		FDR_mode = False
 		interacting_enhancers_only = False
-		TOP_PR_interaction_plotter_clean_chrom_to_plot = chroms_to_infer[1]	
+		TOP_PR_interaction_plotter_clean_chrom_to_plot = chrom_names[chroms_to_infer[1]]
 		option_for_predictive_FULL_mode = 2
 		genes_predicted_with_FDR_for_GRO_seq_validation = 0.25
 		TOP_PR_interaction_plotter_FDR_thresholds_to_plot = FDR[:3]
+		calculate_number_of_within_domain_interactions = True
 
 	elif mode_of_code == "ODD":
 		chroms_in_prior = np.arange(0,23,2)#np.arange(0,13,1)#np.arange(0,13,1)
@@ -77,12 +108,12 @@ def executor(PR_CURVES = "SELECTIVE", mode_of_code = "EVEN", mode_of_features_an
 	TSS_or_intra_genic_for_domain_filter = ["Intra_genic", "TSS_only"][0]
 	generator_mode = ["filter_independent_generator", "filter_correl_dependent_generator", "filter_dependent_generator"][1]
 
-	promoter_overlaps_enhancer_file = "intersect_with_full_genes_l_{0}_r_{1}".format(upstream, downstream)
-	name_of_promoter_file_for_overlap = "Homo_sapiens.GRCh37.75.gtf_filtered_gene_joint_2_cleaned_chr_sorted_sorted_ordered_0_indexed"
-	name_of_enhancer_file_for_overlap = "common_region_peaks_extended_less_time_points_corrected_0_indexed"#"common_region_peaks_extended_less_time_points_sorted"
-	name_of_time_series_promoter_file_for_TSS_start = 'Homo_sapiens.GRCh37.75.gtf_filtered_gene_joint_2_cleaned_chr_sorted_sorted_ordered'
-	name_of_overlap_file_pro = 'ER_promoters_{0}_{1}'.format(upstream, downstream)
-	name_of_overlap_file_enh = 'ER_peaks_overlapping_promoters_{0}_{1}'.format(upstream, downstream)
+	promoter_overlaps_enhancer_file = temp_output + "intersect_with_full_genes_l_{0}_r_{1}".format(upstream, downstream)
+	name_of_promoter_file_for_overlap = data_folder + "Homo_sapiens.GRCh37.75.gtf_filtered_gene_joint_2_cleaned_chr_sorted_sorted_ordered_0_indexed.gz"
+	name_of_enhancer_file_for_overlap = data_folder + "common_region_peaks_extended_less_time_points_corrected_0_indexed"#"common_region_peaks_extended_less_time_points_sorted"
+	name_of_time_series_promoter_file_for_TSS_start = data_folder + "Homo_sapiens.GRCh37.75.gtf_filtered_gene_joint_2_cleaned_chr_sorted_sorted_ordered.gz"
+	name_of_overlap_file_pro = temp_output + 'ER_promoters_{0}_{1}'.format(upstream, downstream)
+	name_of_overlap_file_enh = temp_output + 'ER_peaks_overlapping_promoters_{0}_{1}'.format(upstream, downstream)
 
 	# you can now make every feature to behave differentely. However how to count a signal would depend on where TSS is.
 
@@ -95,7 +126,7 @@ def executor(PR_CURVES = "SELECTIVE", mode_of_code = "EVEN", mode_of_features_an
 
 	#----------------------------------------------------------
 
-	chrom_names = np.array(map(lambda x: "chr{0}".format(x), np.r_[np.arange(1, 23).astype(dtype='S2'), ['X'], ['Y']]))
+	
 	chroms_to_infer = chrom_names[chroms_to_infer]
 	chroms_in_prior = chrom_names[chroms_in_prior]
 	option = [0,1,2,3,4]
@@ -113,17 +144,22 @@ def executor(PR_CURVES = "SELECTIVE", mode_of_code = "EVEN", mode_of_features_an
 	name_of_time_series_file = {}
 	name_of_time_series_file["enhancers"] = name_of_enhancer_file_for_overlap + "_unfiltered_count"
 
-	if upstream_t_s <> 0: name_of_time_series_file["promoters"] = "Homo_sapiens.GRCh37.75.gtf_filtered_gene_joint_2_cleaned_chr_sorted_sorted_ordered_0_indexed_{0}_unfiltered_count".format(upstream_t_s)
-	else: name_of_time_series_file["promoters"] = "Homo_sapiens.GRCh37.75.gtf_filtered_gene_joint_2_cleaned_chr_sorted_sorted_ordered_0_indexed_unfiltered_count"
+	name_of_enhancer_file_for_overlap = name_of_enhancer_file_for_overlap + ".gz"
 
-	full_list_enhancers = np.array([name_of_time_series_file["enhancers"] + "_{0}".format(name_of_TF) for name_of_TF in datasets_names])
-	full_list_promoters = np.array([name_of_time_series_file["promoters"] + "_{0}".format(name_of_TF) for name_of_TF in datasets_names])
+	if upstream_t_s <> 0: name_of_time_series_file["promoters"] = data_folder + "Homo_sapiens.GRCh37.75.gtf_filtered_gene_joint_2_cleaned_chr_sorted_sorted_ordered_0_indexed_{0}_unfiltered_count".format(upstream_t_s)
+	else: name_of_time_series_file["promoters"] = data_folder + "Homo_sapiens.GRCh37.75.gtf_filtered_gene_joint_2_cleaned_chr_sorted_sorted_ordered_0_indexed_unfiltered_count"
+
+	full_list_enhancers = np.array([name_of_time_series_file["enhancers"] + "_{0}.gz".format(name_of_TF) for name_of_TF in datasets_names])
+	full_list_promoters = np.array([name_of_time_series_file["promoters"] + "_{0}.gz".format(name_of_TF) for name_of_TF in datasets_names])
 
 	link_data_set_name_to_file_name["enhancers"] = dict(zip(datasets_names, full_list_enhancers))
 	link_data_set_name_to_file_name["promoters"] = dict(zip(datasets_names, full_list_promoters))
 
 
-
+	import config_variables
+	reload(config_variables)
+	config_variables.data_folder = data_folder
+	config_variables.results_folder = results_folder
 	#------------------------------------------------------------------------------------------------------------
 	import time_series_prepare_filter as initiate_time_series
 	initiate_time_series.datasets_names = datasets_names
@@ -166,8 +202,8 @@ def executor(PR_CURVES = "SELECTIVE", mode_of_code = "EVEN", mode_of_features_an
 
 
 
-
-	import config_variables
+	
+	config_variables.temp_output = temp_output
 	config_variables.np = np
 	config_variables.link_data_set_name_to_file_name = link_data_set_name_to_file_name
 	config_variables.chroms_in_prior = chroms_in_prior
@@ -297,8 +333,11 @@ def executor(PR_CURVES = "SELECTIVE", mode_of_code = "EVEN", mode_of_features_an
 			config_variables.labels = np.loadtxt(merged_time_series_to_cluster + "_labels", dtype = str)
 
 		import os as os
+		cwd = os.getcwd()
+		path_to_R = cwd + "/R_scripts/"
+		os.chdir(path_to_R)
 
-		path_to_R = os.getcwd() + "/R_scripts/"
+		print ("Rscript " + path_to_R + "ER_enhancer.R")
 		
 		if cluster_figure_selection == "cluster_ER_enhancer": os.system("Rscript " + path_to_R + "ER_enhancer.R") 
 
@@ -309,17 +348,24 @@ def executor(PR_CURVES = "SELECTIVE", mode_of_code = "EVEN", mode_of_features_an
 		elif cluster_figure_selection == "cluster_ER_promoter": os.system("Rscript " + path_to_R + "ER_promoter.R")
 
 		elif cluster_figure_selection == "cluster_Pol2s_ER_enhancer": os.system("Rscript " + path_to_R + "Pol2_ER.R")
+		os.chdir(cwd)	
 
-		import sys
-		sys.exit("exiting code")
+		if not(copy_and_paste_mode): return 0
 
 	if plot_TF_enrichments_in_cluster:
 
-		merged_time_series_to_cluster = "common_region_peaks_extended_less_time_points_corrected_0_indexed_unfiltered_count_concat_PolII_ER_200"
+		import os as os
+		cwd = os.getcwd()
+		os.system("tar xvzf hg19.tar.gz")
+		path_to_R = cwd + "/R_scripts/"
+		os.chdir(path_to_R)
+		os.system("tar xvzf data_temp_output_for_cluster_figures.tar.gz")
+		os.chdir(cwd)
+
+		merged_time_series_to_cluster = "./R_scripts/common_region_peaks_extended_less_time_points_corrected_0_indexed_unfiltered_count_concat_PolII_ER_200"
 		import overlapper_hg19_clean
 		overlapper_hg19_clean.executor(merged_time_series_to_cluster, diff_bind_version = DB_version, mode_atr = rising_of_falling_POL2_or_ER) # mode attribute specifies whether it should use ER mean or Pol2 mean of a cluster to assess raising or falling tendencies.
-		import sys
-		sys.exit("exiting code")
+		if not(copy_and_paste_mode): return 0
 
 	import generator_executor
 	f_name = generator_executor.interactions_producer_filter(generator_mode, domain, 2, TSS_or_intra_genic_for_domain_filter, "GENE_MODE") #in order to get path 2 interactions change to 3
@@ -431,6 +477,8 @@ def executor(PR_CURVES = "SELECTIVE", mode_of_code = "EVEN", mode_of_features_an
 	config_variables.classifiers_clean = classifiers_clean
 
 
+	
+
 	if mode_of_code == "ODD" or mode_of_code == "EVEN":
 		#import PR_top
 		#PR_top.execute()
@@ -438,7 +486,8 @@ def executor(PR_CURVES = "SELECTIVE", mode_of_code = "EVEN", mode_of_features_an
 		import MAP_invoker
 		MAP_probabilites_correl_dist, infered_elements_correl_dist, match_MAP_correl_dist, sensitivity_match_MAP = MAP_invoker.executor()
 		import PR_top_MAP_dots_alternative_domain
-		PR_top_MAP_dots_alternative_domain.execute(sensitivity_match_MAP, np.sum([len(match_MAP_correl_dist[chrom_]) for chrom_ in chroms_to_infer]), option_to_plot = PR_CURVES)
+		for PR_CURVES in ["SELECTIVE", "ALL"]:
+			PR_top_MAP_dots_alternative_domain.execute(sensitivity_match_MAP, np.sum([len(match_MAP_correl_dist[chrom_]) for chrom_ in chroms_to_infer]), option_to_plot = PR_CURVES)
 
 
 
@@ -457,6 +506,10 @@ def executor(PR_CURVES = "SELECTIVE", mode_of_code = "EVEN", mode_of_features_an
 		#import MAP_interaction_plotter_clean
 		#MAP_interaction_plotter_clean.executor(MAP_probabilites_correl_dist, infered_elements_correl_dist, match_MAP_correl_dist)
 		import TOP_PR_interaction_plotter_clean
-		TOP_PR_interaction_plotter_clean.executor(selection_option = option_for_predictive_FULL_mode, chrom_to_plot = TOP_PR_interaction_plotter_clean_chrom_to_plot, FDR_thresholds_to_plot = TOP_PR_interaction_plotter_FDR_thresholds_to_plot)
+		TOP_PR_interaction_plotter_clean.executor(selection_option = option_for_predictive_FULL_mode, chrom_to_plot = TOP_PR_interaction_plotter_clean_chrom_to_plot, FDR_thresholds_to_plot = TOP_PR_interaction_plotter_FDR_thresholds_to_plot, calculate_number_of_within_domain_interactions = calculate_number_of_within_domain_interactions)
+
+
+
+
 
 

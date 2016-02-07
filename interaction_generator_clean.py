@@ -11,16 +11,16 @@ def generator(pro_survived, enh_survived, domain, max_path):
 	dataset_time_series_dict = config_variables.dataset_time_series_dict
 	TSS_or_intra_genic_for_domain_filter = config_variables.TSS_or_intra_genic_for_domain_filter
 	name_of_time_series_promoter_file_for_TSS_start = config_variables.name_of_time_series_promoter_file_for_TSS_start
-
+	temp_output = config_variables.temp_output
 	
 	#parameters-------------------------
 	#ovenh_ovenh_pro_pro_version = False
 	#max_pro_enh_mode = True
 	#-----------------------------------
 
-	enhancer_enhancer_inter = np.loadtxt('enhancer_enhancer_interactions_{0}_{1}'.format(upstream, downstream), usecols = (0,1,2), dtype = str, delimiter = '\t') 
-	promoter_promoter_inter = np.loadtxt('promoter_promoter_interactions_{0}_{1}'.format(upstream, downstream), usecols = (0,1,2), dtype = str, delimiter = '\t') 
-	promoter_enhancer_inter = np.loadtxt('promoter_enhancer_interactions_{0}_{1}'.format(upstream, downstream), usecols = (0,1,2), dtype = str, delimiter = '\t') 
+	enhancer_enhancer_inter = np.loadtxt(temp_output + 'enhancer_enhancer_interactions_{0}_{1}'.format(upstream, downstream), usecols = (0,1,2), dtype = str, delimiter = '\t') 
+	promoter_promoter_inter = np.loadtxt(temp_output + 'promoter_promoter_interactions_{0}_{1}'.format(upstream, downstream), usecols = (0,1,2), dtype = str, delimiter = '\t') 
+	promoter_enhancer_inter = np.loadtxt(temp_output + 'promoter_enhancer_interactions_{0}_{1}'.format(upstream, downstream), usecols = (0,1,2), dtype = str, delimiter = '\t') 
 
 	un_stringer = lambda x: int(re.findall('\d+', x)[0])
 	

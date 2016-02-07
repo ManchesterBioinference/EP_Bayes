@@ -68,9 +68,9 @@ ENHANCER_GENE_INTERACTOR.executor(PR_CURVES, mode_of_code, mode_of_features_and_
 
 #ENRICHMENTS:
 
-ENHANCER_GENE_INTERACTOR.executor(rising_of_falling_POL2_or_ER = ["ER", "Pol2"][1], plot_TF_enrichments_in_cluster = True, DB_version = False)
+#ENHANCER_GENE_INTERACTOR.executor(rising_of_falling_POL2_or_ER = ["ER", "Pol2"][1], plot_TF_enrichments_in_cluster = True, DB_version = False, redo_raw_CHIA_PET_interactions = False)
 
-ENHANCER_GENE_INTERACTOR.executor(rising_of_falling_POL2_or_ER = ["ER", "Pol2"][1], plot_TF_enrichments_in_cluster = True, DB_version = True)
+#ENHANCER_GENE_INTERACTOR.executor(rising_of_falling_POL2_or_ER = ["ER", "Pol2"][1], plot_TF_enrichments_in_cluster = True, DB_version = True, redo_raw_CHIA_PET_interactions = False)
 
 
 #------------------------------------------------------------------------------------------------

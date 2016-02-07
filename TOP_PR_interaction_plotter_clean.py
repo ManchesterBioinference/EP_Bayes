@@ -1,9 +1,11 @@
-def executor(selection_option, chrom_to_plot, FDR_thresholds_to_plot):
+def executor(selection_option, chrom_to_plot, FDR_thresholds_to_plot, calculate_number_of_within_domain_interactions):
 
 	import config_variables
 	import itertools
 	import numpy as np
 	from  prepare_interactions_clean import un_string
+	results_folder = config_variables.results_folder
+
 	classifiers_clean = config_variables.classifiers_clean
 	
 
@@ -147,13 +149,13 @@ def executor(selection_option, chrom_to_plot, FDR_thresholds_to_plot):
 			interacting_mask = np.zeros_like(interaction_matrix).astype(bool)
 			interacting_mask[i_s_t - total_p, j_s_t + len(indexes_p) - total_e] = True
 
-			true_pro_enh_inter_filtered = np.where(interacting_mask * (interaction_matrix >= threshold_low) * (interaction_matrix < threshold_up))
+			true_pro_enh_inter_filtered = np.where(interacting_mask * (interaction_matrix >= threshold_low) * (interaction_matrix < threshold_up) * domain_matrix)
 			i_s_t_filt, j_s_t_filt = true_pro_enh_inter_filtered[0] + total_p, true_pro_enh_inter_filtered[1] - len(indexes_p) + total_e # that line tells you which of the positive (green) ChIA-PET-confirmed interactions lay within threshold_low, threshold_up interval
 
 			interacting_mask = np.zeros_like(interaction_matrix).astype(bool)
 			interacting_mask[i_s_f - total_p, j_s_f + len(indexes_p) - total_e] = True
 
-			false_pro_enh_inter_filtered = np.where(interacting_mask * (interaction_matrix >= threshold_low) * (interaction_matrix < threshold_up))
+			false_pro_enh_inter_filtered = np.where(interacting_mask * (interaction_matrix >= threshold_low) * (interaction_matrix < threshold_up) * domain_matrix)
 			i_s_f_filt, j_s_f_filt = false_pro_enh_inter_filtered[0] + total_p, false_pro_enh_inter_filtered[1] - len(indexes_p) + total_e # that line tells you which of the negative (gray) interactions lay within threshold_low, threshold_up interval
 
 			#--------------------------------------------------------------------------the part to look at for Paolo !
@@ -219,7 +221,7 @@ def executor(selection_option, chrom_to_plot, FDR_thresholds_to_plot):
 
 	comb = ",".join([config_variables.dict_option[el] for el in option_])
 
-	name_of_output_file_with_thresholds_estimated_on_odd_even_chromosomes = "file_with_FDRs_{0}_{1}_smo_{2}_{3}".format("chr1", "chr2", config_variables.use_smooth_prior_for_estimation, config_variables.number_of_bins)
+	name_of_output_file_with_thresholds_estimated_on_odd_even_chromosomes = results_folder + "file_with_FDRs_{0}_{1}_smo_{2}_{3}".format("chr1", "chr2", config_variables.use_smooth_prior_for_estimation, config_variables.number_of_bins)
 
 	name_of_output_file_with_thresholds_estimated_on_odd_even_chromosomes += "_{0}_{1}_{2}".format(config_variables.upstream, config_variables.downstream, config_variables.upstream_t_s)
 
@@ -242,12 +244,41 @@ def executor(selection_option, chrom_to_plot, FDR_thresholds_to_plot):
 	i_s_t_filt_2, j_s_t_filt_2, i_s_f_filt_2, j_s_f_filt_2 = interactions_above_threshold(posterior_correl_dist_true, posterior_correl_dist_false, thresholds_test_est_FDR_dist_data[0], thresholds_test_est_FDR_dist_data[1], chrom)
 	i_s_t_filt_3, j_s_t_filt_3, i_s_f_filt_3, j_s_f_filt_3 = interactions_above_threshold(posterior_correl_dist_true, posterior_correl_dist_false, thresholds_test_est_FDR_dist_data[1], thresholds_test_est_FDR_dist_data[2], chrom)
 
+	print thresholds_test_est_FDR_dist_data
+
 	#i_s_t_filt_1_dom, j_s_t_filt_1_dom, i_s_f_filt_1_dom, j_s_f_filt_1_dom = interactions_above_threshold(posterior_correl_dist_true, posterior_correl_dist_false, 1., threshold_1, chrom, domain = True)
 	#i_s_t_filt_2_dom, j_s_t_filt_2_dom, i_s_f_filt_2_dom, j_s_f_filt_2_dom = interactions_above_threshold(posterior_correl_dist_true, posterior_correl_dist_false, threshold_1, threshold_2, chrom, domain = True)
 	#i_s_t_filt_3_dom, j_s_t_filt_3_dom, i_s_f_filt_3_dom, j_s_f_filt_3_dom = interactions_above_threshold(posterior_correl_dist_true, posterior_correl_dist_false, threshold_2, threshold_3, chrom, domain = True)
 
+	def number_of_intra_domain_interactions():
 
 
+		number_of_interactions_within_domain = np.zeros(len(chroms_to_infer))
+		number_of_interactions_outside_domain = np.zeros(len(chroms_to_infer))
+
+		for ind, chrom in enumerate(chroms_to_infer):
+
+			i_s_t_filt_1 = interactions_above_threshold(posterior_correl_dist_true, posterior_correl_dist_false, 1., 0, chrom)[0]
+			i_s_t_filt_1_dom = interactions_above_threshold(posterior_correl_dist_true, posterior_correl_dist_false, 1., 0, chrom, domain = True)[0]
+
+			number_of_interactions_within_domain[ind] = len(i_s_t_filt_1)
+			number_of_interactions_outside_domain[ind] = len(i_s_t_filt_1_dom)
+
+		within_domain_vs_global = np.c_[number_of_interactions_within_domain, number_of_interactions_outside_domain]
+
+		name_of_output_file = results_folder + "within_domain_vs_global"
+
+		name_of_output_file += "_{0}_{1}_{2}".format(config_variables.upstream, config_variables.downstream, config_variables.upstream_t_s)
+
+		if config_variables.disentagled_features_validation: 
+
+			name_of_output_file += "_TSS"
+		else:
+			name_of_output_file += "_GENE"
+
+		np.savetxt(name_of_output_file + ".csv", within_domain_vs_global, delimiter = "\t", header = "\t".join(["within", "outside_domain"]))
+
+	if calculate_number_of_within_domain_interactions: number_of_intra_domain_interactions()
 
 	import matplotlib.pyplot as plt
 	import matplotlib.patches as patch_figures
@@ -389,7 +420,7 @@ def executor(selection_option, chrom_to_plot, FDR_thresholds_to_plot):
 
 	from matplotlib.backends.backend_pdf import PdfPages
 
-	name_of_output_cartoon_file = 'cartoon_{0}_{1}_{2}_{3}_average_PolII'.format(",".join([comb]), config_variables.one_sided_or_two_sided, config_variables.use_smooth_prior_for_estimation, config_variables.number_of_bins)
+	name_of_output_cartoon_file = results_folder + 'cartoon_{0}_{1}_{2}_{3}_average_PolII'.format(",".join([comb]), config_variables.one_sided_or_two_sided, config_variables.use_smooth_prior_for_estimation, config_variables.number_of_bins)
 
 	name_of_output_cartoon_file += "_{0}_{1}_{2}".format(config_variables.upstream, config_variables.downstream, config_variables.upstream_t_s)
 
@@ -402,6 +433,6 @@ def executor(selection_option, chrom_to_plot, FDR_thresholds_to_plot):
 	pdf = PdfPages(name_of_output_cartoon_file + ".pdf")
 
 	pdf.savefig()
-	pdf.close(); plt.show()
+	pdf.close(); #plt.close("all"); #plt.show()
 
 

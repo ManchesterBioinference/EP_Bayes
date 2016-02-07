@@ -5,6 +5,9 @@ def executor(selection_option, FDR_level):
 	import itertools
 	import config_variables
 
+	data_folder = "./data/"
+	results_folder = config_variables.results_folder
+
 	def calculate_single_ROC_best_True_sensitivity(probabilities_true, probabilities_false, decreasing = True):
 
 		_True_positives_of_threshold = []
@@ -51,7 +54,7 @@ def executor(selection_option, FDR_level):
 	
 	comb = ",".join([dict_option[el] for el in option_])
 
-	name_of_output_file = "clusters_genes_vs_counts_prob_distant_all_{0}_{1}_smo_{2}_proximal_version_PR_met".format(FDR_level, ",".join([comb]), config_variables.use_smooth_prior_for_estimation)
+	name_of_output_file = results_folder + "clusters_genes_vs_counts_prob_distant_all_{0}_{1}_smo_{2}_proximal_version_PR_met".format(FDR_level, ",".join([comb]), config_variables.use_smooth_prior_for_estimation)
 
 	name_of_output_file += "_{0}_{1}_{2}".format(config_variables.upstream, config_variables.downstream, config_variables.upstream_t_s)
 
@@ -91,7 +94,7 @@ def executor(selection_option, FDR_level):
 
 	for data_set in np.array(["GRO", "RNA"])[[0]]:
 		for FDR in ("0,001", "0,05", "0,01"):
-			SEQ_genes = np.loadtxt("{0}seq_DE_{1}.csv".format(data_set, FDR), dtype = str)
+			SEQ_genes = np.loadtxt(data_folder + "{0}seq_DE_{1}.csv.gz".format(data_set, FDR), dtype = str)
 			#------------distance
 			c=colours.next()
 			positive_negatives_SEQ = np.in1d(distal_enhancer_targets_genes, SEQ_genes)
@@ -112,7 +115,7 @@ def executor(selection_option, FDR_level):
 	plt.rcParams['xtick.labelsize'] = 18
 	plt.rc('ytick', labelsize=18)	
 	#plt.rc('xtick', labelsize=20)	
-	plt.rcParams['figure.figsize'] = 12, 8
+	plt.rcParams['figure.figsize'] = 15, 10 #figsize=(20,10)
 
 	plt.xlabel('Recall(TPR)', fontsize=20)
 	plt.ylabel('Precision', fontsize=20)
@@ -120,7 +123,7 @@ def executor(selection_option, FDR_level):
 
 	plt.legend()
 
-	name_of_output_FDR_file = 'GRO_seq_active_GENES_{0}_{1}_{2}_{3}_{4}_average_PolII'.format(FDR_level, ",".join([comb]), config_variables.one_sided_or_two_sided, config_variables.use_smooth_prior_for_estimation, config_variables.number_of_bins)
+	name_of_output_FDR_file = results_folder + 'GRO_seq_active_GENES_{0}_{1}_{2}_{3}_{4}_average_PolII'.format(FDR_level, ",".join([comb]), config_variables.one_sided_or_two_sided, config_variables.use_smooth_prior_for_estimation, config_variables.number_of_bins)
 
 	name_of_output_FDR_file += "_{0}_{1}_{2}".format(config_variables.upstream, config_variables.downstream, config_variables.upstream_t_s)
 
@@ -133,6 +136,7 @@ def executor(selection_option, FDR_level):
 	pdf = PdfPages(name_of_output_FDR_file + ".pdf")
 
 	pdf.savefig()
+	plt.close("all")
 	pdf.close(); #plt.show()
 
 

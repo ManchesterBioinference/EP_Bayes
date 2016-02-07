@@ -1,4 +1,5 @@
 def executor():
+
 	import config_variables 
 	from prepare_interactions_clean import un_string
 	import MAP_function_clean as MAP_
@@ -10,8 +11,9 @@ def executor():
 	np = config_variables.np
 	chroms_to_infer = config_variables.chroms_to_infer
 	chroms_in_prior = config_variables.chroms_in_prior
+	results_folder = config_variables.results_folder
 	
-	f1 = open("MAP_performance_{0}_{1}_p_{2}_i_{3}_d{4}".format(mode, one_sided_or_two_sided, "-".join(chroms_in_prior[[0,-1]]), ",".join(chroms_to_infer), domain), "w")
+	f1 = open(results_folder + "MAP_performance_{0}_{1}_p_{2}_i_{3}_d{4}".format(mode, one_sided_or_two_sided, "-".join(chroms_in_prior[[0,-1]]), ",".join(chroms_to_infer), domain), "w")
 
 
 	stuff = [1,2,3,4]

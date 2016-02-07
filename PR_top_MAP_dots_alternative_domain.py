@@ -4,8 +4,9 @@ def execute(sensitivity_match_MAP, number_of_interacting_enhancers_, option_to_p
 
 	from matplotlib.backends.backend_pdf import PdfPages
 	import config_variables
+	results_folder = config_variables.results_folder
 
-	name_of_output_FDR_file = 'FDR_file_{0}_{1}_{4}_{2}_{3}_average_PolII'.format(config_variables.chroms_in_prior[0], config_variables.chroms_to_infer[0], config_variables.one_sided_or_two_sided, config_variables.use_smooth_prior_for_estimation, config_variables.number_of_bins)
+	name_of_output_FDR_file = results_folder + 'FDR_file_{0}_{1}_{4}_{2}_{3}_average_PolII'.format(config_variables.chroms_in_prior[0], config_variables.chroms_to_infer[0], config_variables.one_sided_or_two_sided, config_variables.use_smooth_prior_for_estimation, config_variables.number_of_bins)
 
 	name_of_output_FDR_file += "_{0}_{1}_{2}".format(config_variables.upstream, config_variables.downstream, config_variables.upstream_t_s)
 
@@ -25,7 +26,7 @@ def execute(sensitivity_match_MAP, number_of_interacting_enhancers_, option_to_p
 
 	if config_variables.FDR_mode:
 		
-		name_of_output_file_with_thresholds_estimated_on_odd_even_chromosomes = "file_with_FDRs_{0}_{1}_smo_{2}_{3}".format(config_variables.chroms_in_prior[0], config_variables.chroms_to_infer[0], config_variables.use_smooth_prior_for_estimation, config_variables.number_of_bins)
+		name_of_output_file_with_thresholds_estimated_on_odd_even_chromosomes = results_folder + "file_with_FDRs_{0}_{1}_smo_{2}_{3}".format(config_variables.chroms_in_prior[0], config_variables.chroms_to_infer[0], config_variables.use_smooth_prior_for_estimation, config_variables.number_of_bins)
 
 		name_of_output_file_with_thresholds_estimated_on_odd_even_chromosomes += "_{0}_{1}_{2}".format(config_variables.upstream, config_variables.downstream, config_variables.upstream_t_s)
 
@@ -526,8 +527,8 @@ def execute(sensitivity_match_MAP, number_of_interacting_enhancers_, option_to_p
 			pdf.savefig()
 	if config_variables.FDR_mode: output.close()
 	pdf.close()	
-	plt.show()
-
+	#plt.show()
+	plt.close("all")
 
 
 

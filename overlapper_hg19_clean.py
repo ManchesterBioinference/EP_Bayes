@@ -16,7 +16,7 @@ def executor(merged_time_series_to_cluster, diff_bind_version = False, mode_atr 
 
 	#config_variables.merged_time_series_to_cluster = merged_time_series_to_cluster
 
-	merged_time_series_to_cluster = "common_region_peaks_extended_less_time_points_corrected_0_indexed_unfiltered_count_concat_PolII_ER_200"
+	#merged_time_series_to_cluster = "common_region_peaks_extended_less_time_points_corrected_0_indexed_unfiltered_count_concat_PolII_ER_200"
 
 	name_of_files = np.loadtxt(pwd + "/" + hg + "/list_of_files.txt", dtype = str)
 

@@ -5,8 +5,9 @@ def executor(selection_option):
 	import numpy as np
 	from  prepare_interactions_clean import un_string
 
+	results_folder = config_variables.results_folder
 
-	name_of_output_file_with_thresholds_estimated_on_odd_even_chromosomes = "file_with_FDRs_{0}_{1}_smo_{2}_{3}".format("chr1", "chr2", config_variables.use_smooth_prior_for_estimation, config_variables.number_of_bins)
+	name_of_output_file_with_thresholds_estimated_on_odd_even_chromosomes = results_folder + "file_with_FDRs_{0}_{1}_smo_{2}_{3}".format("chr1", "chr2", config_variables.use_smooth_prior_for_estimation, config_variables.number_of_bins)
 
 	name_of_output_file_with_thresholds_estimated_on_odd_even_chromosomes += "_{0}_{1}_{2}".format(config_variables.upstream, config_variables.downstream, config_variables.upstream_t_s)
 
@@ -172,7 +173,7 @@ def executor(selection_option):
 
 	to_save = np.column_stack((config_variables.FDR[::-1], number_of_positives_FDR_data_dist, number_of_positives_FDR_dist, np.array(number_of_positives_FDR_data_dist)/np.array(number_of_positives_FDR_dist).astype(float)))
 
-	name_of_output_file_distance_vs_data_and_distance = "table_distance_vs_{0}_distance_vs_FDR_smo_{1}_{2}".format(comb, config_variables.use_smooth_prior_for_estimation, config_variables.number_of_bins)
+	name_of_output_file_distance_vs_data_and_distance = results_folder + "table_distance_vs_{0}_distance_vs_FDR_smo_{1}_{2}".format(comb, config_variables.use_smooth_prior_for_estimation, config_variables.number_of_bins)
 
 	name_of_output_file_distance_vs_data_and_distance += "_{0}_{1}_{2}".format(config_variables.upstream, config_variables.downstream, config_variables.upstream_t_s)
 

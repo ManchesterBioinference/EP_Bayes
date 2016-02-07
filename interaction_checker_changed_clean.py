@@ -2,6 +2,8 @@ def executor(interactions_to_dissect, upstream, downstream):
 	import numpy as np
 	import re
 	import itertools
+	import config_variables
+	temp_output = config_variables.temp_output
 
 	int_flts=np.loadtxt(interactions_to_dissect, usecols=(1,2,4,5,8,9), dtype=int)
 	int_strs=np.loadtxt(interactions_to_dissect, usecols=(0,3,6,7,10), dtype=str)
@@ -12,12 +14,12 @@ def executor(interactions_to_dissect, upstream, downstream):
 	#inter_only = open('pure_true_interactions', 'w')
 	#clean_inter_only = open('pure_true_interactions_cleaned', 'w')
 	#clean_inter_only_single = open('pure_true_interactions_cleaned_single', 'w')
-	removed = open('removed_both_and_wrong_{0}_{1}'.format(upstream, downstream), 'w')
+	removed = open(temp_output + 'removed_both_and_wrong_{0}_{1}'.format(upstream, downstream), 'w')
 
 
-	promoter_promoter_interactions = open('promoter_promoter_interactions_{0}_{1}'.format(upstream, downstream), 'w')
-	promoter_enhancer_interactions = open('promoter_enhancer_interactions_{0}_{1}'.format(upstream, downstream), 'w')
-	enhancer_enhancer_interactions = open('enhancer_enhancer_interactions_{0}_{1}'.format(upstream, downstream), 'w')
+	promoter_promoter_interactions = open(temp_output + 'promoter_promoter_interactions_{0}_{1}'.format(upstream, downstream), 'w')
+	promoter_enhancer_interactions = open(temp_output + 'promoter_enhancer_interactions_{0}_{1}'.format(upstream, downstream), 'w')
+	enhancer_enhancer_interactions = open(temp_output + 'enhancer_enhancer_interactions_{0}_{1}'.format(upstream, downstream), 'w')
 
 
 

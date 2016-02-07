@@ -4,6 +4,8 @@ import numpy as np
 import re
 
 import config_variables
+data_folder = config_variables.data_folder
+temp_output = config_variables.temp_output
 
 name_of_promoter_file_for_overlap = config_variables.name_of_promoter_file_for_overlap
 name_of_enhancer_file_for_overlap = config_variables.name_of_enhancer_file_for_overlap
@@ -48,8 +50,8 @@ def extract_coordinates():
 	promoter_data[:, 0] = data[:, 0]
 
 	#--------------------
-	ER_promoters = np.loadtxt("ER_controled_promoters_pindexed.txt", dtype = str, delimiter = '\t')
-	Non_ER_promoters = np.loadtxt("Non_ER_controled_promoters_pindexed.txt", dtype = str, delimiter = '\t')
+	ER_promoters = np.loadtxt("{0}ER_controled_promoters_pindexed.txt".format(temp_output), dtype = str, delimiter = '\t')
+	Non_ER_promoters = np.loadtxt("{0}Non_ER_controled_promoters_pindexed.txt".format(temp_output), dtype = str, delimiter = '\t')
 	def un_string(array_to_clean):  return np.array(map(lambda x: int(re.findall('\d+', x)[0]), array_to_clean))
 	ER_promoters_indexes = un_string(ER_promoters[:, 3])
 
@@ -59,30 +61,30 @@ def extract_coordinates():
 	promoter_data[np.invert(ER_promoters_indexes_mask), 3] = Non_ER_promoters[:,-1]
 	promoter_data[ER_promoters_indexes_mask, 3] = ER_promoters[:,-1]
 	
-	np.savetxt("ER_controled_promoters_pindexed_2.txt", promoter_data[ER_promoters_indexes_mask], fmt = "%s", delimiter = "\t")
-	np.savetxt("Non_ER_controled_promoters_pindexed_2.txt", promoter_data[np.invert(ER_promoters_indexes_mask)], fmt = "%s", delimiter = "\t")
+	np.savetxt("{0}ER_controled_promoters_pindexed_2.txt".format(temp_output), promoter_data[ER_promoters_indexes_mask], fmt = "%s", delimiter = "\t")
+	np.savetxt("{0}Non_ER_controled_promoters_pindexed_2.txt".format(temp_output), promoter_data[np.invert(ER_promoters_indexes_mask)], fmt = "%s", delimiter = "\t")
 
 if disentagled_features_validation: 
 	extract_coordinates()
-	os.system("cat Non_ER_controled_promoters_pindexed_2.txt ER_controled_promoters_pindexed_2.txt distal_ER_peaks_pindexed.txt > all_features_without_distance_ones")
+	os.system("cat {0}Non_ER_controled_promoters_pindexed_2.txt {0}ER_controled_promoters_pindexed_2.txt {0}distal_ER_peaks_pindexed.txt > {0}all_features_without_distance_ones".format(temp_output))
 else:
-	os.system("cat Non_ER_controled_promoters_pindexed.txt ER_controled_promoters_pindexed.txt distal_ER_peaks_pindexed.txt > all_features_without_distance_ones")
+	os.system("cat {0}Non_ER_controled_promoters_pindexed.txt {0}ER_controled_promoters_pindexed.txt {0}distal_ER_peaks_pindexed.txt > {0}all_features_without_distance_ones".format(temp_output))
 
-os.system("sort -k 1,1d -k 2,2n -k 3,3n all_features_without_distance_ones > all_features_without_distance_ones_s")
+os.system("sort -k 1,1d -k 2,2n -k 3,3n {0}all_features_without_distance_ones > {0}all_features_without_distance_ones_s".format(temp_output))
 
 import orderer_clean
-orderer_clean.executor("all_features_without_distance_ones_s", config_variables.chrom_names)
+orderer_clean.executor("{0}all_features_without_distance_ones_s".format(temp_output), config_variables.chrom_names)
 
 if disentagled_features_validation: 
 
-	os.system("pairToBed -a merged_interactions_CHiA_PET_ordered_0_ind -b all_features_without_distance_ones_s_ordered -type both > all_features_s_ordered_concat_new_interactions_{0}_{1}_{2}_{3}".format(upstream, downstream, upstream_validation, downstream_validation))
+	os.system("pairToBed -a {0}merged_interactions_CHiA_PET_ordered_0_ind.gz -b {1}all_features_without_distance_ones_s_ordered -type both > {1}all_features_s_ordered_concat_new_interactions_{2}_{3}_{4}_{5}".format(data_folder, temp_output, upstream, downstream, upstream_validation, downstream_validation))
 
 	import interaction_checker_changed_clean
-	interaction_checker_changed_clean.executor("all_features_s_ordered_concat_new_interactions_{0}_{1}_{2}_{3}".format(upstream, downstream, upstream_validation, downstream_validation), upstream_validation, downstream_validation)
+	interaction_checker_changed_clean.executor(temp_output + "all_features_s_ordered_concat_new_interactions_{0}_{1}_{2}_{3}".format(upstream, downstream, upstream_validation, downstream_validation), upstream_validation, downstream_validation)
 
 else:
-	os.system("pairToBed -a merged_interactions_CHiA_PET_ordered_0_ind -b all_features_without_distance_ones_s_ordered -type both > all_features_s_ordered_concat_new_interactions_{0}_{1}".format(upstream, downstream))
+	os.system("pairToBed -a {0}merged_interactions_CHiA_PET_ordered_0_ind.gz -b {1}all_features_without_distance_ones_s_ordered -type both > {1}all_features_s_ordered_concat_new_interactions_{2}_{3}".format(data_folder, temp_output, upstream, downstream))
 
 	import interaction_checker_changed_clean
-	interaction_checker_changed_clean.executor("all_features_s_ordered_concat_new_interactions_{0}_{1}".format(upstream, downstream), upstream, downstream)
+	interaction_checker_changed_clean.executor(temp_output + "all_features_s_ordered_concat_new_interactions_{0}_{1}".format(upstream, downstream), upstream, downstream)
 
