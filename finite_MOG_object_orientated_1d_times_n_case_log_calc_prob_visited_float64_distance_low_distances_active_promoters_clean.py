@@ -59,12 +59,17 @@ class finite_mix:
 		#self._c_trace = [] # stores consequtive c outcomes.
 		#self._mean_trace = []
 		#self._standard_dev_trace=[]
-
+		
 		self.kappa_0 = float(kappa_0) 
 		self.mu_0 = float(mu_0) 
 		self.alpha_0 = float(alpha_0)
-		self.Beta_0 = float(Beta_0)
-		self.mu_0 = np.zeros(self.D)		
+		self.Beta_0 = 1./float(Beta_0) # converts scale to rate, parameters should be given in scale. Derivations are in rate
+		#self.mu_0 = np.zeros(self.D)
+
+		if self.mode_of_sampler == "distance_MOG_empir_mu":
+			self.mu_0 = self.active_promoters_time_series
+			
+		self.time_series = np.r_[self.active_promoters_time_series, self.X]
 		
 		self.K = len(self.active_promoters)
 		self.J = len(self.peaks)
@@ -72,12 +77,22 @@ class finite_mix:
 				
 		self.gaussian_const = -0.5*float(self.D)*np.log(2.0*np.pi)
 
-		self.time_series = np.r_[self.active_promoters_time_series, self.X]
+		
 
 		self.vec_gamma = np.vectorize(np.random.gamma)
 		self.vec_normal = np.vectorize(np.random.normal)
 
-		if mode_of_sampler == "distance_MOG" or mode_of_sampler == "distance_prior":
+		if mode_of_sampler == "dirichlet_MOG":
+			self.alpha = 1.
+			self.cl = self.K # ammend that if you want less clusters "dirichlet_MOG"
+			self.labels = np.arange(self.cl)
+			self.c = self.labels[np.random.randint(0, self.cl, self.N)]
+
+			self.initialise_probabilities_and_lookup_arrays()
+		
+
+
+		else:
 
 			self.dist = self.calculate_distances_between_promoters_and_non_promoters()
 			self.empirical_prob_inter_profile = probabilities_of_a_bin #"distance_MOG"
@@ -106,14 +121,6 @@ class finite_mix:
 			self.c = self.labels[np.random.randint(0, self.K, self.J)] # generates randint(1,K) times self.N. Randint generates from as if from range(1,21) = list <1,20>
 			self.c = np.r_[np.arange(self.K), self.c]
 
-		if mode_of_sampler == "dirichlet_MOG":
-
-			self.cl = self.K # ammend that if you want less clusters "dirichlet_MOG"
-			self.labels = np.arange(self.cl)
-			self.c = self.labels[np.random.randint(0, self.cl, self.N)]
-
-			self.initialise_probabilities_and_lookup_arrays()
-		
 		#self.matching_label_matrix = np.zeros((self.cl, self.N))
 		if mode_of_sampler <> "distance_prior":
 			self.standard_dev=np.ones((self.cl, self.D))
@@ -165,7 +172,7 @@ class finite_mix:
 	def initialise_probabilities_and_lookup_arrays(self):
 
 		self.total_n = np.histogram(self.c, bins=self.cl, density=False)[0]	
-		self.probabilities = (self.total_n + self.alpha_0/float(self.cl))/(float(self.N) + self.alpha_0 - 1.0)
+		self.probabilities = (self.total_n + self.alpha/float(self.cl))/(float(self.N) + self.alpha - 1.0)
 	
 	
 	def calculate_distances_between_promoters_and_non_promoters(self):
@@ -245,8 +252,11 @@ class finite_mix:
 
 	def normal_component_of_X_max_ne(self):
 
-		if self.mode_of_sampler == "distance_MOG": X = self.X
-		if self.mode_of_sampler == "dirichlet_MOG": X = self.time_series
+		if self.mode_of_sampler == "dirichlet_MOG": 
+			X = self.time_series
+		else: 
+			X = self.X
+
 
 		X, mean, variance = X[:, np.newaxis], self.mean, self.variance 
 		expre = "(X - mean)**2/ variance"
@@ -277,7 +287,7 @@ class finite_mix:
 
 			self.prob = self.distance_prob_component
 
-		elif self.mode_of_sampler == "distance_MOG":
+		elif self.mode_of_sampler == "distance_MOG" or self.mode_of_sampler == "distance_MOG_empir_mu":
 
 			normal = self.normal_component_of_X_max_ne()
 			self.prob = normal*self.distance_prob_component		
@@ -364,7 +374,13 @@ class finite_mix:
  
 		#matches = self.matching_label_matrix == np.arange(self.K)[:, None]
 
-		matches = self.c.reshape(1, self.c.size) == self.labels[:, None] # for dirichlet self.labels = self.K 
+
+		if self.mode_of_sampler == "distance_MOG_empir_mu":
+			matches = self.c[self.K:].reshape(1, self.c[self.K:].size) == self.labels[:, None]
+			time_series = self.X		
+		else:
+			matches = self.c.reshape(1, self.c.size) == self.labels[:, None] # for dirichlet self.labels = self.K 
+			time_series = self.time_series
 
 		lengths_k = matches.sum(1).astype(float)
 
@@ -375,13 +391,15 @@ class finite_mix:
 		#t_new = time.time()
 		#for k in range(self.K): emp_means_k[k] = self.time_series[matches[k]].mean(0)
 
-		if self.mode_of_sampler == "dirichlet_MOG":
+		if self.mode_of_sampler == "dirichlet_MOG" or self.mode_of_sampler == "distance_MOG_empir_mu":
 			emp_means_k = np.zeros((self.cl, self.D))
 			non_empty = lengths_k.astype(bool)
-			emp_means_k[non_empty] = np.dot(matches, self.time_series)[non_empty]/lengths_k[non_empty][:,None]
+			emp_means_k[non_empty] = np.dot(matches, time_series)[non_empty]/lengths_k[non_empty][:,None]
 
-		elif self.mode_of_sampler == "distance_MOG":
-			emp_means_k = np.dot(matches, self.time_series)/lengths_k[:,None]
+		else:
+			emp_means_k = np.dot(matches, time_series)/lengths_k[:,None]
+
+	
 
 		#print "calculate_means:", time.time() - t_new		
 		mus_k = (self.kappa_0 * self.mu_0 + lengths_k[:, None] * emp_means_k)/kappas_k[:, None]
@@ -389,9 +407,16 @@ class finite_mix:
 		#Betas_k = np.zeros((self.K, self.D))
 		t_new = time.time()
 
-		sum_squared_term = np.dot(matches, self.time_series**2) - lengths_k[:,None]*emp_means_k**2
+		#matches, time_series
 
-		Betas_k = self.Beta_0 + 0.5*sum_squared_term + 0.5*self.kappa_0*(emp_means_k-self.mu_0)**2.0*(lengths_k/kappas_k)[:,None]
+		#sum_squared_term = np.dot(matches, time_series**2) - lengths_k[:,None]*emp_means_k**2  # wrong 
+
+		#Betas_k = self.Beta_0 + 0.5*sum_squared_term + 0.5*self.kappa_0*(emp_means_k-self.mu_0)**2.0*(lengths_k/kappas_k)[:,None]
+
+		sum_squared_term = np.zeros((self.K, self.D))
+		for k in np.arange(self.K): sum_squared_term[k] = 0.5*np.sum((time_series[matches[k]]-emp_means_k[k])**2.0, axis=0)
+
+		Betas_k = self.Beta_0 + sum_squared_term + 0.5*self.kappa_0*(emp_means_k-self.mu_0)**2.0*(lengths_k/kappas_k)[:,None]
 
 		#for k in np.arange(self.K): Betas_k[k] = self.Beta_0 + 0.5*np.sum((self.time_series[matches[k]]-emp_means_k[k])**2.0, axis=0) + 0.5*self.kappa_0*lengths_k[k]*(emp_means_k[k]-self.mu_0)**2.0/kappas_k[k]
 
@@ -487,6 +512,7 @@ def executor(mode_of_sampler, number_of_samples, option_correl, chrom):
 	if mode_of_sampler == "distance_prior": name = 'prior_distance_trace_of_c_{0}_{1}'.format(chrom, number_of_samples)
 	elif mode_of_sampler == "distance_MOG": name = 'MOG_distance_trace_of_c_{0}_{1}_{2}_{3}_{4}_{5}_{6}'.format(kappa_0, mu_0, alpha_0, Beta_0, chrom, comb, number_of_samples)
 	elif mode_of_sampler == "dirichlet_MOG": name = 'MOG_dirichlet_trace_of_c_{0}_{1}_{2}_{3}_{4}_{5}_{6}'.format(kappa_0, mu_0, alpha_0, Beta_0, chrom, comb, number_of_samples)
+	elif mode_of_sampler == "distance_MOG_empir_mu": name = 'MOG_distance_emprirical_mu_trace_of_c_{0}_{1}_{2}_{3}_{4}_{5}_{6}'.format(kappa_0, mu_0, alpha_0, Beta_0, chrom, comb, number_of_samples)
 	
 	output = open(save_to_folder + name, 'w')
 

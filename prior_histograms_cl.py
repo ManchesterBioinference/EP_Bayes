@@ -218,15 +218,21 @@ def prior_bins_prob_and_plotter(prior_elements, low_dist, up_dist, use_smooth_pr
 
 				print bandwidth_pos
 				prob_["positive_interactions"], bins_["positive_interactions"] = kern_density_est.kern_scipy_gaus(sample_["positive_interactions"], colour[0], xgrid[0], bandwidth = bandwidth_pos, label = label_1)
-				prob_["negative_interactions"], bins_["negative_interactions"] = kern_density_est.kern_scipy_gaus(sample_["negative_interactions"], colour[1], xgrid[1], bandwidth = "scott", label = label_2)	
+				
+				if config_variables.mode_of_code == "GAUSSIAN":	
+					prob_["negative_interactions"], bins_["negative_interactions"] = [], []
+				else: 
+					prob_["negative_interactions"], bins_["negative_interactions"] = kern_density_est.kern_scipy_gaus(sample_["negative_interactions"], colour[1], xgrid[1], bandwidth = "scott", label = label_2)
 			else:
 
 				bandwidth_pos = kern_density_est.cross_validation(sample_["positive_interactions"])# * sample_["positive_interactions"].std(ddof=1)
 				print bandwidth_pos
-				prob_["positive_interactions"], bins_["positive_interactions"] = kern_density_est.kern_scipy_gaus(sample_["positive_interactions"], colour[0], xgrid[0], bandwidth=bandwidth_pos, label = label_1)
-				prob_["negative_interactions"], bins_["negative_interactions"] = kern_density_est.kern_scipy_gaus(sample_["negative_interactions"], colour[1], xgrid[1], bandwidth="scott", label = label_2)
-				
 
+				prob_["positive_interactions"], bins_["positive_interactions"] = kern_density_est.kern_scipy_gaus(sample_["positive_interactions"], colour[0], xgrid[0], bandwidth=bandwidth_pos, label = label_1)
+				if config_variables.mode_of_code == "GAUSSIAN":	
+					prob_["negative_interactions"], bins_["negative_interactions"] = [], []
+				else: 
+					prob_["negative_interactions"], bins_["negative_interactions"] = kern_density_est.kern_scipy_gaus(sample_["negative_interactions"], colour[1], xgrid[1], bandwidth="scott", label = label_2)
 
 		if use_smooth_prior_for_estimation:	return  prob_, bins_
 		else: return  [[], []], [[], []]
@@ -325,6 +331,8 @@ def prior_bins_prob_and_plotter(prior_elements, low_dist, up_dist, use_smooth_pr
 		if use_smooth_prior_for_estimation:
 			for positive_or_negative_side in ["positive_side", "negative_side"]:
 				for classification_of_interactions in ["positive_interactions", "negative_interactions"]:				
+					if config_variables.mode_of_code == "GAUSSIAN" and classification_of_interactions == "negative_interactions": continue
+
 					prob_smooth_ = prob_smooth[positive_or_negative_side][classification_of_interactions][:-1] + np.diff(prob_smooth[positive_or_negative_side][classification_of_interactions])/2.
 					prob_smooth_ /= sum(prob_smooth_*np.diff(bins_smooth[positive_or_negative_side][classification_of_interactions]))
 
@@ -369,6 +377,9 @@ def prior_bins_prob_and_plotter(prior_elements, low_dist, up_dist, use_smooth_pr
 
 
 	if config_variables.mode_of_code == "FULL":
+		name_of_histogram_file = results_folder + 'multipage_priors_average_{0}_{1}'.format(one_sided_or_two_sided, config_variables.mode_of_code)
+
+	elif config_variables.mode_of_code == "GAUSSIAN":
 		name_of_histogram_file = results_folder + 'multipage_priors_average_{0}_{1}'.format(one_sided_or_two_sided, config_variables.mode_of_code)
 
 	else:
@@ -431,6 +442,7 @@ def prior_bins_prob_and_plotter(prior_elements, low_dist, up_dist, use_smooth_pr
 
 		if use_smooth_prior_for_estimation:
 			for classification_of_interactions in ["positive_interactions", "negative_interactions"]:
+				if config_variables.mode_of_code == "GAUSSIAN" and classification_of_interactions == "negative_interactions": continue
 				prob_smooth_ = prob_smooth[classification_of_interactions][:-1] + np.diff(prob_smooth[classification_of_interactions])/2.
 				prob_smooth_ /= sum(prob_smooth_*np.diff(bins_smooth[classification_of_interactions]))
 

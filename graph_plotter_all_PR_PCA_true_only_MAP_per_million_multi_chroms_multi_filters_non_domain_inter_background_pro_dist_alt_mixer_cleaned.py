@@ -16,14 +16,14 @@ def executor(PR_CURVES = "SELECTIVE", mode_of_code = "EVEN", mode_of_features_an
 	import smooth_priors_domain
 	from matplotlib.backends.backend_pdf import PdfPages
 
-	copy_and_paste_mode = False
 
+	copy_and_paste_mode = True
 	if copy_and_paste_mode:
 		PR_CURVES = "SELECTIVE"
-		mode_of_code = "FULL"
-		mode_of_features_and_interactions = "FEATURES_AND_INTERACTIONS_TOGETHER"
+		mode_of_code = ["ODD","EVEN", "FULL", "GAUSSIAN"][3]
+		mode_of_features_and_interactions = "FEATURES_AND_INTERACTIONS_SEPERATE"
 		GENE_OR_PROMOTER_MODE = "GENE_MODE"
-		redo_raw_CHIA_PET_interactions = True
+		redo_raw_CHIA_PET_interactions = False
 		rising_of_falling_POL2_or_ER = ["ER", "Pol2"][1]
 		plot_TF_enrichments_in_cluster = False
 		upstream = 300
@@ -35,6 +35,7 @@ def executor(PR_CURVES = "SELECTIVE", mode_of_code = "EVEN", mode_of_features_an
 		cluster_figure_selection = None
 		DB_version = False
 		calculate_number_of_within_domain_interactions = True
+		
 
 	#np.seterr(all=None, divide='raise', over=None, under=None, invalid=None)
 
@@ -64,7 +65,7 @@ def executor(PR_CURVES = "SELECTIVE", mode_of_code = "EVEN", mode_of_features_an
 	filter_value = filter_values[0]
 	number_of_bins = 4000, 4000 # to implement-easy
 
-	FDR = np.array([0.2,  0.25,  0.3,  0.35,  0.4])# add 0.1
+	FDR = np.array([0.10, 0.2,  0.25,  0.3,  0.35,  0.4])# add 0.1
 
 	import os
 	data_folder = "./data/"
@@ -119,10 +120,23 @@ def executor(PR_CURVES = "SELECTIVE", mode_of_code = "EVEN", mode_of_features_an
 
 	#----------------------------------------------------------
 	#MoG
+	if mode_of_code == "GAUSSIAN":
+		chroms_in_prior = np.arange(0,23,1)#+1#np.arange(0,13,1)#np.arange(0,13,1)
+		chroms_to_infer = np.arange(0,23,1)#np.arange(0,23,2)#np.arange(0,13,1)#np.arange(0,23,2)#np.arange(0,13,1)
+		FDR_mode = False
+		interacting_enhancers_only = False # set the upper-lower-bounds-of-distace-prior-otherwise-there-would-be-allocation-problem-of-high/low-distance
+		mode_of_sampler = ["distance_prior", "distance_MOG", "dirichlet_MOG", "distance_MOG_empir_mu"][0]
+		#TOP_PR_interaction_plotter_clean_chrom_to_plot = chrom_names[chroms_to_infer[1]]
+		#option_for_predictive_FULL_mode = 2
+		#genes_predicted_with_FDR_for_GRO_seq_validation = 0.25
+		#TOP_PR_interaction_plotter_FDR_thresholds_to_plot = FDR[:3]
+		#calculate_number_of_within_domain_interactions = True
+		kappa_0, mu_0, alpha_0, Beta_0 = 3.0, 0.0, 2.0, 2.0 # here betta is in scale. np. gamma is in scale so you can plot the gammma with the scale to have an estimate on nice beta. #derivations are in 1/betta.
+		number_of_samples = 10000#100001#30
+		MoG_classificator, Run_MoG_classificator = True, True
 
-	MoG_classificator, Run_MoG_classificator = False, False
-	kappa_0, mu_0, alpha_0, Beta_0 = 1.0, 0.0, 5.0, 2.0
-	number_of_samples = 100001#30
+	else: 
+		MoG_classificator, Run_MoG_classificator = False, False
 
 	#----------------------------------------------------------
 
@@ -350,22 +364,14 @@ def executor(PR_CURVES = "SELECTIVE", mode_of_code = "EVEN", mode_of_features_an
 		elif cluster_figure_selection == "cluster_Pol2s_ER_enhancer": os.system("Rscript " + path_to_R + "Pol2_ER.R")
 		os.chdir(cwd)	
 
-		if not(copy_and_paste_mode): return 0
+		#if not(copy_and_paste_mode): return 0
 
 	if plot_TF_enrichments_in_cluster:
 
-		import os as os
-		cwd = os.getcwd()
-		os.system("tar xvzf hg19.tar.gz")
-		path_to_R = cwd + "/R_scripts/"
-		os.chdir(path_to_R)
-		os.system("tar xvzf data_temp_output_for_cluster_figures.tar.gz")
-		os.chdir(cwd)
-
-		merged_time_series_to_cluster = "./R_scripts/common_region_peaks_extended_less_time_points_corrected_0_indexed_unfiltered_count_concat_PolII_ER_200"
+		merged_time_series_to_cluster = "common_region_peaks_extended_less_time_points_corrected_0_indexed_unfiltered_count_concat_PolII_ER_200"
 		import overlapper_hg19_clean
 		overlapper_hg19_clean.executor(merged_time_series_to_cluster, diff_bind_version = DB_version, mode_atr = rising_of_falling_POL2_or_ER) # mode attribute specifies whether it should use ER mean or Pol2 mean of a cluster to assess raising or falling tendencies.
-		if not(copy_and_paste_mode): return 0
+		#if not(copy_and_paste_mode): return 0
 
 	import generator_executor
 	f_name = generator_executor.interactions_producer_filter(generator_mode, domain, 2, TSS_or_intra_genic_for_domain_filter, "GENE_MODE") #in order to get path 2 interactions change to 3
@@ -418,6 +424,42 @@ def executor(PR_CURVES = "SELECTIVE", mode_of_code = "EVEN", mode_of_features_an
 
 	low_dist, up_dist = prior_bounds.prepare_upper_and_lower_bounds_for_priors(prior_elements, infered_elements)
 	prior_elements = prior_histograms_cl.prior_bins_prob_and_plotter(prior_elements, low_dist, up_dist, use_smooth_prior_for_estimation, plot_atr, plot_atr_kernel)
+
+	def func_star(args): return MOG.executor(*args)
+
+	if config_variables.Run_MoG_classificator:
+		from multiprocessing import Pool
+		config_variables.probabilities_of_a_bin = prior_elements[mode]["positive_interactions"]["distance"]["prior_frequencies"]
+		config_variables.adequate_histogram_bins = prior_elements[mode]["positive_interactions"]["distance"]["prior_bins"]
+
+		Save_distance_prior_if_something_crashed = True	
+		if Save_distance_prior_if_something_crashed:
+			np.save("distance_prior_bins_MOG", prior_elements[mode]["positive_interactions"]["distance"]["prior_frequencies"])
+			np.save("distance_prior_freq_MOG", prior_elements[mode]["positive_interactions"]["distance"]["prior_bins"])
+
+		import finite_MOG_object_orientated_1d_times_n_case_log_calc_prob_visited_float64_distance_low_distances_active_promoters_clean as MOG
+		stuff = [1, 2, 3, 4]
+		combinations = []
+		for L in range(0, len(stuff)+1):
+			for subset in itertools.combinations(stuff, L):
+				if len(subset): combinations += [list(subset)]
+
+		selected_combinations = np.array(combinations)[[0, 2, 5, 10, 14]].tolist()
+		p = Pool(2)
+
+
+		#for option_correl__ in selected_combinations:
+		#	for chrom_ in chroms_to_infer:
+		#		MOG.executor(number_of_samples, option_correl__, chrom_)
+
+
+
+		arguments = [(mode_of_sampler, number_of_samples, option_correl__, chrom_) for chrom_ in chroms_to_infer for option_correl__ in selected_combinations] #[(number_of_samples, option_correl__, chrom_) for option_correl__ in selected_combinations]
+
+		p.map_async(func_star, arguments)
+
+
+
 	infered_elements = allocator.allocator(infered_elements, prior_elements)
 
 	#for mode in modes:
@@ -437,38 +479,6 @@ def executor(PR_CURVES = "SELECTIVE", mode_of_code = "EVEN", mode_of_features_an
 					for chrom_ in chroms_to_infer:
 						update = infered_elements[mode][classification_of_interactions][attribute_of_interaction][probability_of_being_positive_or_negative][chrom_]
 						classificator_elements[filter_value][mode][classification_of_interactions][attribute_of_interaction][probability_of_being_positive_or_negative]["posterior_component_values"][chrom_] = update
-
-
-	def func_star(args): return MOG.executor(*args)
-
-	if config_variables.Run_MoG_classificator:
-		from multiprocessing import Pool
-		config_variables.probabilities_of_a_bin = prior_elements[mode]["positive_interactions"]["distance"]["prior_frequencies"]
-		config_variables.adequate_histogram_bins = prior_elements[mode]["positive_interactions"]["distance"]["prior_bins"]
-
-		import finite_MOG_object_orientated_1d_times_n_case_log_calc_prob_visited_float64_distance_low_distances_active_promoters_clean as MOG
-		stuff = [1, 2, 3, 4]
-		combinations = []
-		for L in range(0, len(stuff)+1):
-			for subset in itertools.combinations(stuff, L):
-				if len(subset): combinations += [list(subset)]
-
-		selected_combinations = np.array(combinations)[[0, 2, 5, 10, 14]].tolist()
-		p = Pool(5)
-
-
-		#for option_correl__ in selected_combinations:
-		#	for chrom_ in chroms_to_infer:
-		#		MOG.executor(number_of_samples, option_correl__, chrom_)
-
-
-
-		arguments = [(number_of_samples, option_correl__, chrom_) for chrom_ in chroms_to_infer for option_correl__ in selected_combinations] #[(number_of_samples, option_correl__, chrom_) for option_correl__ in selected_combinations]
-
-		p.map_async(func_star, arguments)
-	
-
-
 
 
 
@@ -507,9 +517,5 @@ def executor(PR_CURVES = "SELECTIVE", mode_of_code = "EVEN", mode_of_features_an
 		#MAP_interaction_plotter_clean.executor(MAP_probabilites_correl_dist, infered_elements_correl_dist, match_MAP_correl_dist)
 		import TOP_PR_interaction_plotter_clean
 		TOP_PR_interaction_plotter_clean.executor(selection_option = option_for_predictive_FULL_mode, chrom_to_plot = TOP_PR_interaction_plotter_clean_chrom_to_plot, FDR_thresholds_to_plot = TOP_PR_interaction_plotter_FDR_thresholds_to_plot, calculate_number_of_within_domain_interactions = calculate_number_of_within_domain_interactions)
-
-
-
-
 
 
