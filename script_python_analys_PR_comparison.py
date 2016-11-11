@@ -54,30 +54,25 @@ def executor(selection_option, FDR_level):
 	
 	comb = ",".join([dict_option[el] for el in option_])
 
-	def extract_data_to_comparison(upstream, downstream, upstream_t_s, mode):
+	name_of_output_file = results_folder + "clusters_genes_vs_counts_prob_distant_all_{0}_{1}_smo_{2}_proximal_version_PR_met".format(FDR_level, ",".join([comb]), config_variables.use_smooth_prior_for_estimation)
 
-		#enhancer_targets = np.loadtxt("clusters_genes_vs_counts_prob_distant_all_0.25_PolII,ER_smo_True_proximal_version_PR_met.txt", delimiter = "\t", dtype = str)	
+	name_of_output_file += "_{0}_{1}_{2}".format(config_variables.upstream, config_variables.downstream, config_variables.upstream_t_s)
 
-		name_of_input_file = results_folder + "clusters_genes_vs_counts_prob_distant_all_{0}_{1}_smo_{2}_proximal_version_PR_met".format(FDR_level, ",".join([comb]), config_variables.use_smooth_prior_for_estimation)
 
-		name_of_input_file += "_{0}_{1}_{2}".format(upstream, downstream, upstream_t_s)
+	enhancer_targets = np.loadtxt(name_of_output_file, delimiter = "\t", dtype = str)
+	#enhancer_targets = np.loadtxt("clusters_genes_vs_counts_prob_distant_all_0.25_PolII,ER_smo_True_proximal_version_PR_met.txt", delimiter = "\t", dtype = str)
 
-		enhancer_targets = np.loadtxt(name_of_input_file, delimiter = "\t", dtype = str)
+	enhancer_targets_genes = enhancer_targets[:, 0]
+	probabilities = enhancer_targets[:, 4]
 
-		enhancer_targets_genes = enhancer_targets[:, 0]
-		probabilities = enhancer_targets[:, 4]
+	probabilities_non_zero = probabilities.astype(float) <> 0.
 
-		probabilities_non_zero = probabilities.astype(float) <> 0.
+	distal_enhancer_targets_genes = enhancer_targets_genes[probabilities_non_zero]
+	distal_probabilities = probabilities[probabilities_non_zero]
 
-		distal_enhancer_targets_genes = enhancer_targets_genes[probabilities_non_zero]
-		distal_probabilities = probabilities[probabilities_non_zero]
-
-		proximity = enhancer_targets[:,5].astype(float)
-		proximal_enhancer_targets_genes = enhancer_targets_genes[(proximity <> 0.)]
-		proximal_values = proximity[(proximity <> 0.)]
-
-		return distal_enhancer_targets_genes, distal_probabilities, proximal_enhancer_targets_genes, proximal_values
-
+	proximity = enhancer_targets[:,5].astype(float)
+	proximal_enhancer_targets_genes = enhancer_targets_genes[(proximity <> 0.)]
+	proximal_values = proximity[(proximity <> 0.)]
 	#proximal_values[proximal_values == 0.] = proximal_values.max() + 1.
 	#proximal_values = proximal_values.min(1)
 
@@ -97,42 +92,30 @@ def executor(selection_option, FDR_level):
 
 	colours = iter(plt.rcParams['axes.color_cycle'])
 
-	distal_enhancer_targets_genes_dict, distal_probabilities_dict, proximal_enhancer_targets_genes_dict, proximal_values_dict, parameters = {}, {}, {}, {}, {}
-	parameters["first"] = np.array([1500, 0, 300, "GENE"]).astype(str)
-	parameters["second"] = np.array([1500, 1500, 300, "TSS"]).astype(str)
+	for data_set in np.array(["GRO", "RNA"])[[0]]:
+		for FDR in ("0,001", "0,05", "0,01"):
+			SEQ_genes = np.loadtxt(data_folder + "{0}seq_DE_{1}.csv.gz".format(data_set, FDR), dtype = str)
+			#------------distance
+			c=colours.next()
+			positive_negatives_SEQ = np.in1d(distal_enhancer_targets_genes, SEQ_genes)
+			True_positive_Rate_GRO, Precision_GRO = calculate_single_ROC_best_True_sensitivity(distal_probabilities[positive_negatives_SEQ].astype(float), distal_probabilities[np.invert(positive_negatives_SEQ)].astype(float))
+			ax.plot(True_positive_Rate_GRO, Precision_GRO, label="{0}seq genes, FDR: {1}, model predictions".format(data_set, FDR), linewidth=2, color = c)
+			#------------distance
+			#------------proximity
+			positive_negatives_SEQ_prox = np.in1d(proximal_enhancer_targets_genes, SEQ_genes)
+			True_positive_Rate_GRO_prox, Precision_GRO_prox = calculate_single_ROC_best_True_sensitivity(proximal_values[positive_negatives_SEQ_prox], proximal_values[np.invert(positive_negatives_SEQ_prox)], decreasing = False)
+			if data_set <> "RNA": plt.plot(True_positive_Rate_GRO_prox, Precision_GRO_prox, label="{0}seq genes, FDR: {1}, proximity predictions".format(data_set, FDR), linewidth=3, color = c, linestyle='--')#markersize=8, marker="*")
+			#------------proximity
 
-	distal_enhancer_targets_genes_dict["first"], distal_probabilities_dict["first"], proximal_enhancer_targets_genes_dict["first"], proximal_values_dict["first"] = extract_data_to_comparison(*parameters["first"])
-	#distal_enhancer_targets_genes_dict["second"], distal_probabilities_dict["second"], proximal_enhancer_targets_genes_dict["second"], proximal_values_dict["second"] = extract_data_to_comparison(1500, 0, 300)
-	distal_enhancer_targets_genes_dict["second"], distal_probabilities_dict["second"], proximal_enhancer_targets_genes_dict["second"], proximal_values_dict["second"] = extract_data_to_comparison(*parameters["second"])
-
-	for comparison in ["first", "second"]:
-
-		distal_enhancer_targets_genes, distal_probabilities, proximal_enhancer_targets_genes, proximal_values = distal_enhancer_targets_genes_dict[comparison], distal_probabilities_dict[comparison], proximal_enhancer_targets_genes_dict[comparison], proximal_values_dict[comparison]
-
-		for data_set in np.array(["GRO", "RNA"])[[0]]:
-			for FDR in ("0,001", "0,05", "0,01"):
-				SEQ_genes = np.loadtxt(data_folder + "{0}seq_DE_{1}.csv.gz".format(data_set, FDR), dtype = str)
-				#------------distance
-				c=colours.next()
-				positive_negatives_SEQ = np.in1d(distal_enhancer_targets_genes, SEQ_genes)
-				True_positive_Rate_GRO, Precision_GRO = calculate_single_ROC_best_True_sensitivity(distal_probabilities[positive_negatives_SEQ].astype(float), distal_probabilities[np.invert(positive_negatives_SEQ)].astype(float))
-				ax.plot(True_positive_Rate_GRO*len(True_positive_Rate_GRO), Precision_GRO, label="{0}seq genes, FDR: {1}, model predictions: {2}".format(data_set, FDR, "_".join(parameters[comparison])), linewidth=2, color = c)
-				#------------distance
-				#------------proximity
-				positive_negatives_SEQ_prox = np.in1d(proximal_enhancer_targets_genes, SEQ_genes)
-				True_positive_Rate_GRO_prox, Precision_GRO_prox = calculate_single_ROC_best_True_sensitivity(proximal_values[positive_negatives_SEQ_prox], proximal_values[np.invert(positive_negatives_SEQ_prox)], decreasing = False)
-				plt.plot(True_positive_Rate_GRO_prox*len(True_positive_Rate_GRO_prox), Precision_GRO_prox, label="{0}seq genes, FDR: {1}, proximity predictions: {2}".format(data_set, FDR, "_".join(parameters[comparison])), linewidth=3, color = c, linestyle='--')#markersize=8, marker="*")
-				#------------proximity
-
-				#gene_names = np.loadtxt("Homo_sapiens.GRCh37.75.gtf_filtered_gene_joint_2_cleaned_chr_sorted_sorted_ordered", dtype = str, usecols = (3,))		
-				#Percent_of_DE_genes = np.in1d(gene_names, SEQ_genes).sum()/float(len(gene_names))
+			#gene_names = np.loadtxt("Homo_sapiens.GRCh37.75.gtf_filtered_gene_joint_2_cleaned_chr_sorted_sorted_ordered", dtype = str, usecols = (3,))		
+			#Percent_of_DE_genes = np.in1d(gene_names, SEQ_genes).sum()/float(len(gene_names))
 
 			#print Percent_of_DE_genes
 
 	plt.rcParams['xtick.labelsize'] = 18
 	plt.rc('ytick', labelsize=18)	
 	#plt.rc('xtick', labelsize=20)	
-	plt.rcParams['figure.figsize'] = 15, 10 #figsize=(20,10)
+	plt.rcParams['figure.figsize'] = 20, 10 #figsize=(20,10)
 
 	plt.xlabel('Recall(TPR)', fontsize=20)
 	plt.ylabel('Precision', fontsize=20)
@@ -142,7 +125,13 @@ def executor(selection_option, FDR_level):
 
 	name_of_output_FDR_file = results_folder + 'GRO_seq_active_GENES_{0}_{1}_{2}_{3}_{4}_average_PolII'.format(FDR_level, ",".join([comb]), config_variables.one_sided_or_two_sided, config_variables.use_smooth_prior_for_estimation, config_variables.number_of_bins)
 
-	name_of_output_FDR_file += "_{0}_vs_{1}".format("_".join(parameters["first"]), "_".join(parameters["second"]))
+	name_of_output_FDR_file += "_{0}_{1}_{2}".format(config_variables.upstream, config_variables.downstream, config_variables.upstream_t_s)
+
+	if config_variables.disentagled_features_validation: 
+
+		name_of_output_FDR_file += "_TSS" 
+	else:
+		name_of_output_FDR_file += "_GENE"
 
 	pdf = PdfPages(name_of_output_FDR_file + ".pdf")
 

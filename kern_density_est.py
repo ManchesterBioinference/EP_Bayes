@@ -1,4 +1,4 @@
-def kern_scipy_gaus(x, color, xgrid, bandwidth = "scott", plot_atr = True, label=None):
+def kern_scipy_gaus(x, color, xgrid, bandwidth = "scott", plot_atr = False, label=None):
 
 	import numpy as np
 	from scipy.stats import kde

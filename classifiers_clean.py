@@ -70,39 +70,77 @@ def interactions_extractor(chrom):
 	return true_pro_enh_indexes, prom_enh_false_interactions
 
 
-def MOG_classifier(option_correl, total_posterior = False):
+def MOG_classifier(mode_of_sampler, number_of_samples, burn_in, comb = "ER", kappa_0=1.0, mu_0=1.0, alpha_0=1.0, Beta_0=1.0, total_posterior = False, pairwise_number_in_pack = 150, chain = 1):
 	import os
-	number_of_samples = config_variables.number_of_samples
 
+	def name_creator_and_pair_wise_exist_check(chrom, mode_of_sampler, comb, number_of_samples, burn_in, chain):
 
-	def loads_MoG_results(chrom):
+		if mode_of_sampler == "distance_prior": name = 'prior_distance_trace_of_c_{0}_{1}'.format(chrom, number_of_samples)
+		elif mode_of_sampler == "distance_MOG": name = 'MOG_distance_trace_of_c_{0}_{1}_{2}_{3}_{4}_{5}_{6}'.format(kappa_0, mu_0, alpha_0, Beta_0, chrom, comb, number_of_samples)
+		elif mode_of_sampler == "dirichlet_MOG": name = 'MOG_dirichlet_trace_of_c_{0}_{1}_{2}_{3}_{4}_{5}_{6}'.format(kappa_0, mu_0, alpha_0, Beta_0, chrom, comb, number_of_samples)
+		elif mode_of_sampler == "distance_MOG_empir_mu": name = 'MOG_distance_emprirical_mu_trace_of_c_{0}_{1}_{2}_{3}_{4}_{5}_{6}'.format(kappa_0, mu_0, alpha_0, Beta_0, chrom, comb, number_of_samples)
 
-		comb = "_".join([config_variables.dict_option[el] for el in option_correl])
-		kappa_0, mu_0, alpha_0, Beta_0 = config_variables.kappa_0, config_variables.mu_0, config_variables.alpha_0, config_variables.Beta_0
-		name = 'cluster_trace_of_c_distance_{0}_{1}_{2}_{3}_{4}_{5}_{6}'.format(kappa_0, mu_0, alpha_0, Beta_0, chrom, comb, number_of_samples)
-		name = os.getcwd() + "/MOG_results_/" + name	
+		if chain: name = name + "_{0}".format(chain); print chain
+
+		output_folder = "./MOG_results_/"
+
+		temp_output = output_folder + "Pairwise_prob/"
+
+		if not os.path.exists(temp_output): os.makedirs(temp_output)
+
+		def does_pair_wise_exists():
+
+			pair_wise_prob = temp_output + name + "_{0}_pairwise_prob.npy".format(burn_in)
+
+			pair_wise_prob_exist = os.path.exists(pair_wise_prob)
+			
+			return pair_wise_prob_exist, pair_wise_prob
+
+		name_of_MOG_chain_file = output_folder + name
+
+		print name
+
+		pair_wise_prob_exist, name_of_MOG_chain_file_pair_wise_prob = does_pair_wise_exists()
+
+		print name, pair_wise_prob_exist
+
+		return name_of_MOG_chain_file, name_of_MOG_chain_file_pair_wise_prob, pair_wise_prob_exist 
+
+	def loads_MoG_results(chrom, name):
 
 		import iter_loadtxt
+
 		_c_trace_raw = iter_loadtxt.iter_loadtxt(name, ",", dtype = int) # saves memory
 
-		num_of_promoters = len(config_variables.dict_chrom_pro_survived[chrom])	
-		promoters_fixed_labels = np.zeros((len(_c_trace_raw), num_of_promoters),dtype = int)
-		promoters_fixed_labels[:] = np.arange(num_of_promoters, dtype = int)
-		_c_trace_distance = np.c_[promoters_fixed_labels, _c_trace_raw]
+		if mode_of_sampler == "dirichlet_MOG":
 
-		return _c_trace_distance
+			_c_trace = _c_trace_raw
+
+		else:
+
+			num_of_promoters = len(config_variables.dict_chrom_pro_survived[chrom])	
+			promoters_fixed_labels = np.zeros((len(_c_trace_raw), num_of_promoters),dtype = int)
+			promoters_fixed_labels[:] = np.arange(num_of_promoters, dtype = int)
+			_c_trace = np.c_[promoters_fixed_labels, _c_trace_raw]
+
+		return _c_trace
 
 	def cluster_estimator_similarity(_c_trace):
 
-
 		from multiprocessing import Pool
-		pool = Pool(processes = 4)
+		pool = Pool(processes = 6)
 
-		pack = 100
-		dim = _c_trace.shape
-		incr = int(dim[0]/pack)
+		#pack = number_of_samples
+		#dim = _c_trace.shape
+		#incr = int(dim[0]/pack)
 
-		a = [_c_trace[i*incr:(i+1)*incr] for i in np.arange(pack-1)] + [_c_trace[(pack-1)*incr:]]
+		#number_of_samples = 
+
+		bins = range(0, number_of_samples, pairwise_number_in_pack)
+	
+		if bins[-1] <> number_of_samples: bins.append(number_of_samples)	
+
+		a = [_c_trace[bins[i]:bins[i+1]] for i in range(len(bins[:-1]))]
 
 		import pararell_methods
 
@@ -147,15 +185,28 @@ def MOG_classifier(option_correl, total_posterior = False):
 
 	for chrom_ in chroms_to_infer:
 
-		_c_trace_distance = loads_MoG_results(chrom_)
+		name_of_MOG_chain_file, name_of_MOG_chain_file_pair_wise_prob, pair_wise_prob_exist = name_creator_and_pair_wise_exist_check(chrom_, mode_of_sampler, comb, number_of_samples, burn_in, chain)
 
-		total_matrix = cluster_estimator_similarity(_c_trace_distance)
+		if not pair_wise_prob_exist:
+
+			_c_trace_distance = loads_MoG_results(chrom_, name_of_MOG_chain_file)
+
+			_c_trace_distance = _c_trace_distance[burn_in:]
+
+			total_matrix = cluster_estimator_similarity(_c_trace_distance)
+
+			np.save(name_of_MOG_chain_file_pair_wise_prob, total_matrix)
+
+		else:
+
+			total_matrix = np.load(name_of_MOG_chain_file_pair_wise_prob)
+
 
 		total_matrix = standard_size_converter(total_matrix, chrom_)
 
-		number_of_iterations = float(len(_c_trace_distance))
+		total_matrix = total_matrix / float(number_of_samples - burn_in)
 
-		total_matrix = total_matrix / number_of_iterations
+		print total_matrix
 
 		true_pro_enh_indexes, prom_enh_false_interactions = interactions_extractor(chrom_)
 

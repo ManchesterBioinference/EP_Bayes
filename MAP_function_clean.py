@@ -66,11 +66,13 @@ def MAP(posterior_t, posterior_f, chrom, i_s_f, j_s_f):
 		infered_promoters_pro_enh = MAP_indexes[len(indexes_p):] + total_p
 		MAP_probabilites_pro_enh = interaction_matrix[MAP_indexes, range(len(indexes_p) + len(indexes_e))][len(indexes_p):]
 
+		probabilities_for_promoters_of_interacting_enhancers = interaction_matrix[:len(indexes_p), len(indexes_p) + np.unique(j_s_t) - total_e]
+
 		link_exists_pro = [ind for ind, el in enumerate(MAP_predicted_intereactions_pro.tolist()) if el in true_inter_pro.tolist()]
 		mask_link_exists_pro = np.zeros(len(MAP_predicted_intereactions_pro), bool)
 		mask_link_exists_pro[link_exists_pro] = True
 	
-		return mask_link_exists_pro, infered_promoters_pro_enh, MAP_probabilites_pro_enh
+		return mask_link_exists_pro, infered_promoters_pro_enh, MAP_probabilites_pro_enh, probabilities_for_promoters_of_interacting_enhancers
 
 	if mode == "enhancer_enhancer_interactions":
 

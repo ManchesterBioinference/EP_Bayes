@@ -122,7 +122,7 @@ def executor(selection_option):
 		probability_matrix[i_s_t - total_p, j_s_t + len(indexes_p) - total_e] = posterior_t_chrom
 		probability_matrix[i_s_f - total_p, j_s_f + len(indexes_p) - total_e] = posterior_f_chrom
 
-		probability_matrix += probability_matrix.T
+		#probability_matrix += probability_matrix.T
 
 		#--------------------------------------------------------------------------the part to look at for Paolo !
 			
@@ -137,7 +137,7 @@ def executor(selection_option):
 		interacting_mask = np.zeros_like(probability_matrix).astype(bool)
 		interacting_mask[i_s_t - total_p, j_s_t + len(indexes_p) - total_e] = True
 
-		number_of_true_interactions_at_prob_threshold_estimated_from_test_data_at_FDR_chrom = clustering_matrix_mask * (probability_matrix >= threshold_low) * (probability_matrix <= threshold_up) * interacting_mask
+		number_of_true_interactions_at_prob_threshold_estimated_from_test_data_at_FDR_chrom = clustering_matrix_mask * (probability_matrix >= threshold_low) * (probability_matrix <= threshold_up) #* interacting_mask
 
 		return number_of_true_interactions_at_prob_threshold_estimated_from_test_data_at_FDR_chrom.sum()
 
@@ -165,7 +165,15 @@ def executor(selection_option):
 
 		thresholds_test_est_FDR_dist_data, thresholds_test_est_FDR_dist, thresholds_test_est_FDR_data = FDR_thresholds[(FDR_thresholds[:,0] == comb) * (FDR_thresholds[:,2].astype(float) == FDR), -1]
 
-		number_of_positives_FDR_data_dist += [get_table_of_FDR_predictions(option_data_dist, float(thresholds_test_est_FDR_dist_data))]
+		#number_of_positives_FDR_data_dist += [get_table_of_FDR_predictions(option_data_dist, float(thresholds_test_est_FDR_dist_data))]
+
+
+		if thresholds_test_est_FDR_dist_data <> 'N\A':
+ 			number_of_positives_FDR_data_dist += [get_table_of_FDR_predictions(option_data_dist, float(thresholds_test_est_FDR_dist_data))]
+		else:
+			number_of_positives_FDR_data_dist += [0]
+
+
 		if thresholds_test_est_FDR_dist <> 'N\A': 
 			number_of_positives_FDR_dist += [get_table_of_FDR_predictions([], float(thresholds_test_est_FDR_dist))]
 		else: 

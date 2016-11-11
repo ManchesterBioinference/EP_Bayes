@@ -41,7 +41,7 @@ if option_to_plot == "ALL":
 	red_blue_yellow_cyan_marker_size = 12
 	red_blue_yellow_cyan_marker_size_legend_box = 18
 	legend_box_names_font_size = 22
-	size_of_combination_name = 23
+	size_of_combination_name = 26
 	size_of_y_label = 30
 
 	#ax[0].set_title(comb, fontsize = size_of_combination_name)
@@ -53,20 +53,20 @@ if option_to_plot == "ALL":
 	red_line = mlines.Line2D([], [], color='red', marker='o', markersize = red_blue_yellow_cyan_marker_size_legend_box, label='data')
 	pink_line = mlines.Line2D([], [], color='cyan', marker='*', markersize = red_blue_yellow_cyan_marker_size_legend_box, label='MOG')
 	handles, labels = ax[0].get_legend_handles_labels()
-	ax[0].legend(handles, labels, fontsize = legend_box_names_font_size)
+	ax[0].legend(handles, labels, fontsize = legend_box_names_font_size, scatterpoints = 1)
 
 
 elif option_to_plot == "SELECTIVE":
 
 	f, ax = plt.subplots(1, len(selected_combinations), sharex=True, sharey=True, figsize=(20,10))
-	f.subplots_adjust(left=0.065, bottom=0.1, right=0.965, top=0.925, hspace=0.1, wspace=0.05)
-	plt.rcParams['xtick.labelsize'] = 24
-	plt.rc('ytick', labelsize = 24)
+	f.subplots_adjust(left=0.085, bottom=0.15, right=0.965, top=0.925, hspace=0.1, wspace=0.05)
+	plt.rcParams['xtick.labelsize'] = 28
+	plt.rc('ytick', labelsize = 28)
 	red_blue_yellow_cyan_marker_size = 12
 	red_blue_yellow_cyan_marker_size_legend_box = 18
 	legend_box_names_font_size = 22
-	size_of_combination_name = 23
-	size_of_y_label = 30
+	size_of_combination_name = 35
+	size_of_y_label = 35
 
 	#ax[0].set_title(comb, fontsize = size_of_combination_name)
 	ax[0].set_ylabel('Precision', fontsize = size_of_y_label)
@@ -77,7 +77,7 @@ elif option_to_plot == "SELECTIVE":
 	red_line = mlines.Line2D([], [], color='red', marker='o', markersize = red_blue_yellow_cyan_marker_size_legend_box, label='data')
 	pink_line = mlines.Line2D([], [], color='cyan', marker='*', markersize = red_blue_yellow_cyan_marker_size_legend_box, label='MOG')
 	handles, labels = ax[0].get_legend_handles_labels()
-	ax[0].legend(handles, labels, fontsize = legend_box_names_font_size)
+	ax[0].legend(handles, labels, fontsize = legend_box_names_font_size, scatterpoints = 1)
 
 
 centres_of_ticks = np.arange(4) + 0.5

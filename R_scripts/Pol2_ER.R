@@ -4,9 +4,11 @@
 #Joined Pol2/ER
 
 library(matrixStats)
-cwd = getwd()
+cwd <- getwd()
 
-#setwd(paste(getwd(), "R_scripts" ,sep = "/"))
+update_cwd = paste(cwd, "AP_clustering_output" ,sep = "/")
+print(update_cwd)
+setwd(update_cwd)
 
 print(getwd())
 
@@ -42,7 +44,7 @@ if (max(m + std) > old_max) {old_max = max(m + std)}
 iter <- 0
 
 for(i in sorted_by_size) {
-if (j %% 9 == 0) {par(mfrow=c(3,3), mar = c(2,2.35,0.0,0.0), oma=c(0,0,0,0))}
+if (j %% 9 == 0) {par(mfrow=c(3,3), mar = c(2.,2.5,0.0,1.25), oma=c(0,0,0,0))}
 
 
 d<-data.matrix(data[labels_==i,], rownames.force = NA)
@@ -73,7 +75,7 @@ lines(x=c(8.5,8.5), y=c(-2,2), lty=3, col = c("#7570B3"))
 
 if (j %% 3 == 0) {axis(2, at = c(-2, 0, 2), cex.axis = 1.8)} 
 #if (j %%7 %in% (1:4)) {axis(1, at = 1:8, labels = c("0", "5", "10", "20", "40", "80", "160", "320"), cex.axis = 1)}
-if (j %in% (c(6:8, 15:17, 24:26, 33:35))) {axis(1, at = 1:16, labels = c("0", "5", "10", "20", "40", "80", "160", "320", "0", "5", "10", "20", "40", "80", "160", "320"), cex.axis = 1, line = -1.25)}#
+if (j %in% (c(6:8, 15:17, 24:26, 33:35))) {axis(1, at = 1:16, labels = c("0", "5", "10", "20", "40", "80", "160", "320", "0", "5", "10", "20", "40", "80", "160", "320"), cex.axis = 2.25, line = -1.25)#
 
 
 j<-j+1

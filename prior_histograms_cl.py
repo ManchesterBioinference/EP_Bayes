@@ -1,4 +1,7 @@
-def prior_bins_prob_and_plotter(prior_elements, low_dist, up_dist, use_smooth_prior_for_estimation, plot_atr, plot_atr_kernel):
+def prior_bins_prob_and_plotter(prior_elements, low_dist, up_dist, use_smooth_prior_for_estimation, plot_atr, plot_atr_kernel, Sample_MoG_classificator =  False):
+	import matplotlib as mpl
+	#mpl.use('Agg')
+	import matplotlib.pyplot as plt
 	from matplotlib.backends.backend_pdf import PdfPages
 	import config_variables
 	domain = config_variables.domain
@@ -14,7 +17,6 @@ def prior_bins_prob_and_plotter(prior_elements, low_dist, up_dist, use_smooth_pr
 	interacting_enhancers_only = config_variables.interacting_enhancers_only
 	chroms_to_infer=config_variables.chroms_to_infer
 	results_folder = config_variables.results_folder
-
 
 	def bins_prep_adaptive(array, l_limit, u_limit, how_many_in_bin):
 
@@ -127,12 +129,6 @@ def prior_bins_prob_and_plotter(prior_elements, low_dist, up_dist, use_smooth_pr
 						prior_elements[mode][classification_of_interactions][attribute_of_interaction][data_set_name]["prior_bins"]] = profile_histogram_adaptive(total_array, low_cor, up_cor, number_in_bin)
 
 
-		#if one_sided_or_two_sided == "single_sided" and domain: 
-
-			#new_boundries_after_folding = prior_elements[mode]["positive_interactions"]["distance"]["prior_bins"][[0, -1]].tolist() +  prior_elements[mode]["negative_interactions"]["distance"]["prior_bins"][[0, -1]].tolist()
-			#config_variables.low_dist, config_variables.up_dist = min(new_boundries_after_folding), max(new_boundries_after_folding)
-
-
 	create_priors_domains()
 
 
@@ -156,14 +152,8 @@ def prior_bins_prob_and_plotter(prior_elements, low_dist, up_dist, use_smooth_pr
 
 		return prob_, bins_
 
-
-		
-	def plot_histogram_priors(bins_, prob_, colour = ("g", "y")):
-		plt.bar(bins_["positive_interactions"][:-1], prob_["positive_interactions"], np.diff(bins_["positive_interactions"]), alpha=0.2, color=colour[0])
-		plt.bar(bins_["negative_interactions"][:-1], prob_["negative_interactions"], np.diff(bins_["negative_interactions"]), alpha=0.2, color=colour[1])
-
 	
-	def calculate_or_plot_kern(attribute_of_interaction_, sample_, l_limit, up_limit, number_of_bins, colour = ("r", "b"), weights_ = None, bandwidth_pos = None, bandwidth_neg = None):
+	def calculate_kern(attribute_of_interaction_, sample_, l_limit, up_limit, number_of_bins, colour = ("r", "b"), weights_ = None, bandwidth_pos = None, bandwidth_neg = None):
 	
 		prob_ = {}
 		bins_ = {}
@@ -178,173 +168,81 @@ def prior_bins_prob_and_plotter(prior_elements, low_dist, up_dist, use_smooth_pr
 	
 			if attribute_of_interaction_ == "distance":
 
-
-				#prob_["positive_interactions"], bins_["positive_interactions"] = kern_density_est.kern_scipy_gaus_weighted(sample_["positive_interactions"], colour[0], xgrid[0], weights = weights_["positive_interactions"], bandwidth = "scott", factor = None)#bandwidth_pos)
-				#prob_["negative_interactions"], bins_["negative_interactions"] = kern_density_est.kern_scipy_gaus_weighted(sample_["negative_interactions"], colour[1], xgrid[1], weights = weights_["negative_interactions"], bandwidth = "scott", factor = None)#bandwidth_neg)
-				prob_["positive_interactions"], bins_["positive_interactions"] = kern_density_est.kern_scipy_gaus_weighted(sample_["positive_interactions"], colour[0], xgrid[0], weights = weights_["positive_interactions"], bandwidth = bandwidth_pos, plot_atr = True)#bandwidth_pos)
-				prob_["negative_interactions"], bins_["negative_interactions"] = kern_density_est.kern_scipy_gaus_weighted(sample_["negative_interactions"], colour[1], xgrid[1], weights = weights_["negative_interactions"], bandwidth = bandwidth_neg, plot_atr = True)#bandwidth_neg)
-
-				#bandwidth_pos = kern_density_est.cross_validation(sample_["positive_interactions"])# * sample_["positive_interactions"].std(ddof=1)
-				#bandwidth_neg = kern_density_est.cross_validation(sample_["negative_interactions"])# * sample_["negative_interactions"].std(ddof=1)
-
-				#prob_["positive_interactions"], bins_["positive_interactions"] = kern_density_est.kernel_weighted_samples(sample_["positive_interactions"], colour[0], xgrid[0], weights = weights_["positive_interactions"], fft = False, bw=bandwidth_pos)
-				#prob_["negative_interactions"], bins_["negative_interactions"] = kern_density_est.kernel_weighted_samples(sample_["negative_interactions"], colour[1], xgrid[1], weights = weights_["negative_interactions"], fft = False, bw=bandwidth_neg)
+				prob_["positive_interactions"], bins_["positive_interactions"] = kern_density_est.kern_scipy_gaus_weighted(sample_["positive_interactions"], colour[0], xgrid[0], weights = weights_["positive_interactions"], bandwidth = bandwidth_pos)
+				prob_["negative_interactions"], bins_["negative_interactions"] = kern_density_est.kern_scipy_gaus_weighted(sample_["negative_interactions"], colour[1], xgrid[1], weights = weights_["negative_interactions"], bandwidth = bandwidth_neg)
 
 			else:
-				#kernel_ = "gaussian"
-
-				#bandwidth_pos = kern_density_est.cross_validation(sample_["positive_interactions"], kernel = kernel_) # kernel = 
-				#bandwidth_neg = kern_density_est.cross_validation(sample_["negative_interactions"], kernel = kernel_)
-
-				#prob_["positive_interactions"], bins_["positive_interactions"] = kern_density_est.kern_sklearn_expon(sample_["positive_interactions"], colour[0], xgrid[0], bandwidth = bandwidth_pos, kernel_ = kernel_)
-				#prob_["negative_interactions"], bins_["negative_interactions"] = kern_density_est.kern_sklearn_expon(sample_["negative_interactions"], colour[1], xgrid[1], bandwidth = bandwidth_neg, kernel_ = kernel_)
-
-				bandwidth_pos = kern_density_est.chrom_cross_validation_correlation(prior_elements, data_set_name, thresholds = np.linspace(0.01, .4, 200), classification_of_interactions = "positive_interactions", plot_likelihood_function = False)
-				bandwidth_neg = kern_density_est.chrom_cross_validation_correlation(prior_elements, data_set_name, thresholds = np.linspace(0.01, .4, 200), classification_of_interactions = "negative_interactions", plot_likelihood_function = False)
 
 				prob_["positive_interactions"], bins_["positive_interactions"] = kern_density_est.kern_scipy_gaus(sample_["positive_interactions"], colour[0], xgrid[0], bandwidth = bandwidth_pos)
 				prob_["negative_interactions"], bins_["negative_interactions"] = kern_density_est.kern_scipy_gaus(sample_["negative_interactions"], colour[1], xgrid[1], bandwidth = bandwidth_neg)	
 		else:
-			#if attribute_of_interaction_ == "distance": bandwidth_pos = optimum["distance"][ite]
-			#else: bandwidth_pos = optimum[data_set_name]
 
-				
-			if attribute_of_interaction_ == "distance" and positive_or_negative_side == "negative_side": label_1, label_2 = None, None
-			else: label_1, label_2 = "positive interactions", "negative interactions"
 
-			if likelihood_cross_validation:
-				if attribute_of_interaction_ == "correlation":
-					bandwidth_pos = kern_density_est.chrom_cross_validation_correlation(prior_elements, data_set_name, thresholds = np.linspace(0.01, .4, 200), classification_of_interactions = "positive_interactions", plot_likelihood_function = False)
-
-				print bandwidth_pos
-				prob_["positive_interactions"], bins_["positive_interactions"] = kern_density_est.kern_scipy_gaus(sample_["positive_interactions"], colour[0], xgrid[0], bandwidth = bandwidth_pos, label = label_1)
-				
-				if config_variables.mode_of_code == "GAUSSIAN":	
-					prob_["negative_interactions"], bins_["negative_interactions"] = [], []
-				else: 
-					prob_["negative_interactions"], bins_["negative_interactions"] = kern_density_est.kern_scipy_gaus(sample_["negative_interactions"], colour[1], xgrid[1], bandwidth = "scott", label = label_2)
-			else:
-
-				bandwidth_pos = kern_density_est.cross_validation(sample_["positive_interactions"])# * sample_["positive_interactions"].std(ddof=1)
-				print bandwidth_pos
-
-				prob_["positive_interactions"], bins_["positive_interactions"] = kern_density_est.kern_scipy_gaus(sample_["positive_interactions"], colour[0], xgrid[0], bandwidth=bandwidth_pos, label = label_1)
-				if config_variables.mode_of_code == "GAUSSIAN":	
-					prob_["negative_interactions"], bins_["negative_interactions"] = [], []
-				else: 
-					prob_["negative_interactions"], bins_["negative_interactions"] = kern_density_est.kern_scipy_gaus(sample_["negative_interactions"], colour[1], xgrid[1], bandwidth="scott", label = label_2)
+			prob_["positive_interactions"], bins_["positive_interactions"] = kern_density_est.kern_scipy_gaus(sample_["positive_interactions"], colour[0], xgrid[0], bandwidth=bandwidth_pos)
+			prob_["negative_interactions"], bins_["negative_interactions"] = [], []
+			if not(Sample_MoG_classificator): prob_["negative_interactions"], bins_["negative_interactions"] = kern_density_est.kern_scipy_gaus(sample_["negative_interactions"], colour[1], xgrid[1], bandwidth=bandwidth_neg)
 
 		if use_smooth_prior_for_estimation:	return  prob_, bins_
 		else: return  [[], []], [[], []]
 
 
-	import matplotlib.pyplot as plt
-	plt.rcParams['xtick.labelsize'] = 20.
+	def calculate_bandwidth_dist(sample_):
+		import kern_density_est
+		optimum = {}
+		if domain: print "positive_interactions"
+
+		if likelihood_cross_validation:
+			if domain:
+				print "negative_interactions"
+				optimum["positive_interactions"] = kern_density_est.chrom_cross_validation_distance(prior_elements, thresholds = np.linspace(0.01, .4, 200), classification_of_interactions = "positive_interactions", weights = weights)
+				optimum["negative_interactions"] = kern_density_est.chrom_cross_validation_distance(prior_elements, thresholds = np.linspace(0.01, .4, 200), classification_of_interactions = "negative_interactions", weights = weights)
+			else: 
+				optimum["positive_interactions"] = kern_density_est.chrom_cross_validation_distance(prior_elements, thresholds = np.linspace(0.01, .4, 200), classification_of_interactions = "positive_interactions")
+				optimum["negative_interactions"] = {}
+				for positive_or_negative_side in ["positive_side", "negative_side"]: 
+					optimum["negative_interactions"][positive_or_negative_side] = "scott"
+
+		else: 
+			optimum["positive_interactions"] = {}
+			optimum["negative_interactions"] = {}
+			for positive_or_negative_side in ["positive_side", "negative_side"]: 
+				optimum["positive_interactions"][positive_or_negative_side] = kern_density_est.cross_validation(sample_[positive_or_negative_side]["positive_interactions"])
+				optimum["negative_interactions"][positive_or_negative_side] = "scott"
+
+		return optimum
+
+	def calculate_bandwidth_correl(sample_):
+		import kern_density_est
+		optimum = {}
+		
+		if likelihood_cross_validation:
+			if domain:
+				print "negative_interactions"
+				optimum["positive_interactions"] = kern_density_est.chrom_cross_validation_correlation(prior_elements, data_set_name, thresholds = np.linspace(0.01, .4, 200), classification_of_interactions = "positive_interactions")
+				optimum["negative_interactions"] = kern_density_est.chrom_cross_validation_correlation(prior_elements, data_set_name, thresholds = np.linspace(0.01, .4, 200), classification_of_interactions = "negative_interactions")
+			else: 
+				optimum["positive_interactions"] = kern_density_est.chrom_cross_validation_correlation(prior_elements, data_set_name, thresholds = np.linspace(0.01, .4, 200), classification_of_interactions = "positive_interactions")
+				optimum["negative_interactions"] = "scott"
+		else: 
+				
+			optimum["positive_interactions"] = kern_density_est.cross_validation(sample_["positive_interactions"])
+			optimum["negative_interactions"] = "scott"
+
+		return optimum
 
 	prob={}
 	bins={}
 	optimum = {}
+	prob_smooth={}
+	bins_smooth={}
+
+	attribute_ = {}
+	weights = {}
 
 	number_of_bins = config_variables.number_of_bins
-	#number_of_samples = [800000, 800000]
 
-
-
-	if one_sided_or_two_sided == "double_sided":
-
-		if plot_atr or plot_atr_kernel:	
-			plt.figure(1, figsize=(8, 6), dpi=200)
-			plt.title("Distance prior", fontsize=20)
-			plt.ylabel('density', fontsize=20)
-			plt.xlabel("distance [B]", fontsize=20)
-			tick_labels = [8, 4, 0 , 4, 8]
-			string_labels = [r"$10^{%2d}$" % (i) for i in tick_labels]
-			plt.xticks([-8., -5., 0., 5., 8.],  string_labels, fontsize=20)#["a", "b", "c", "d", "e"])#
-			plt.xlim([-8.5, 8.5])
-		prob_smooth={}
-		bins_smooth={}
-
-		attribute_ = {}
-		weights = {}
-		
-
-		for sign, positive_or_negative_side in zip([1, -1], ["positive_side", "negative_side"]):
-
-			prob[positive_or_negative_side] = {}
-			bins[positive_or_negative_side] = {}
-
-			attribute_[positive_or_negative_side] = {}
-			weights[positive_or_negative_side] = {}
-
-			prob_smooth[positive_or_negative_side] = {}
-			bins_smooth[positive_or_negative_side] = {}
-
-			for classification_of_interactions in ["positive_interactions", "negative_interactions"]:
-
-				prob[positive_or_negative_side][classification_of_interactions] = prior_elements[mode][classification_of_interactions]["distance"][positive_or_negative_side]["prior_frequencies"]
-				bins[positive_or_negative_side][classification_of_interactions] = prior_elements[mode][classification_of_interactions]["distance"][positive_or_negative_side]["prior_bins"]
-			
-				total_array = [prior_elements[mode][classification_of_interactions]["distance"]["attribute_values"][chrom_] for chrom_ in chroms_in_prior]
-				total_array = np.array(list(itertools.chain.from_iterable(total_array)))
-
-				attribute_[positive_or_negative_side][classification_of_interactions] = total_array[sign*total_array > 0]
-
-				if domain: 
-					possible_distances_counts = prior_elements[mode][classification_of_interactions]["distance"]["possible_distances_counts"]
-					possible_distances_counts = np.array(possible_distances_counts)[possible_distances_counts <> 0]
-					total_array = np.array(total_array)[possible_distances_counts <> 0]
-					weights[positive_or_negative_side][classification_of_interactions] = (1./possible_distances_counts[sign*total_array > 0])/np.sum(1./possible_distances_counts[sign*total_array > 0])
-					attribute_[positive_or_negative_side][classification_of_interactions] = total_array[sign*total_array > 0]
-
-			if plot_atr: plot_histogram_priors(bins[positive_or_negative_side], prob[positive_or_negative_side])
-
-
-
-		if use_smooth_prior_for_estimation or plot_atr_kernel:
-			import kern_density_est
-			optimum["distance"] = {}
-			if domain: print "positive_interactions"
-
-			if likelihood_cross_validation:
-				if domain:
-					print "negative_interactions"
-					optimum["distance"]["positive_interactions"] = kern_density_est.chrom_cross_validation_distance(prior_elements, thresholds = np.linspace(0.01, .4, 200), classification_of_interactions = "positive_interactions", plot_likelihood_function = False, weights = weights)
-					optimum["distance"]["negative_interactions"] = kern_density_est.chrom_cross_validation_distance(prior_elements, thresholds = np.linspace(0.01, .4, 200), classification_of_interactions = "negative_interactions", plot_likelihood_function = False, weights = weights)
-				else: 
-					optimum["distance"]["positive_interactions"] = kern_density_est.chrom_cross_validation_distance(prior_elements, thresholds = np.linspace(0.01, .4, 200), classification_of_interactions = "positive_interactions", plot_likelihood_function = False)
-					optimum["distance"]["negative_interactions"] = {}
-					for positive_or_negative_side in ["positive_side", "negative_side"]: optimum["distance"]["negative_interactions"][positive_or_negative_side] = None
-
-			else: 
-				optimum["distance"]["positive_interactions"] = {}
-				for positive_or_negative_side in ["positive_side", "negative_side"]: optimum["distance"]["positive_interactions"][positive_or_negative_side] = None 	
-				optimum["distance"]["negative_interactions"] = {}
-				for positive_or_negative_side in ["positive_side", "negative_side"]: optimum["distance"]["negative_interactions"][positive_or_negative_side] = None
-
-
-
-			for sign, positive_or_negative_side in zip([1, -1], ["positive_side", "negative_side"]):
-				print positive_or_negative_side
-
-				prob_smooth[positive_or_negative_side], bins_smooth[positive_or_negative_side] = calculate_or_plot_kern("distance", attribute_[positive_or_negative_side], low_dist[positive_or_negative_side], up_dist[positive_or_negative_side], number_of_bins, colour = ("g", "y"), weights_ = weights[positive_or_negative_side], bandwidth_pos = optimum["distance"]["positive_interactions"][positive_or_negative_side], bandwidth_neg = optimum["distance"]["negative_interactions"][positive_or_negative_side])
-				
-		if use_smooth_prior_for_estimation:
-			for positive_or_negative_side in ["positive_side", "negative_side"]:
-				for classification_of_interactions in ["positive_interactions", "negative_interactions"]:				
-					if config_variables.mode_of_code == "GAUSSIAN" and classification_of_interactions == "negative_interactions": continue
-
-					prob_smooth_ = prob_smooth[positive_or_negative_side][classification_of_interactions][:-1] + np.diff(prob_smooth[positive_or_negative_side][classification_of_interactions])/2.
-					prob_smooth_ /= sum(prob_smooth_*np.diff(bins_smooth[positive_or_negative_side][classification_of_interactions]))
-
-					[prior_elements[mode][classification_of_interactions]["distance"][positive_or_negative_side]["prior_frequencies"], 
-					prior_elements[mode][classification_of_interactions]["distance"][positive_or_negative_side]["prior_bins"]] = prob_smooth_, bins_smooth[positive_or_negative_side][classification_of_interactions]
-
-		for classification_of_interactions in ["positive_interactions", "negative_interactions"]:
-			[prior_elements[mode][classification_of_interactions]["distance"]["prior_frequencies"], 
-			prior_elements[mode][classification_of_interactions]["distance"]["prior_bins"]] = join_two_sides_of_prior_together(classification_of_interactions)
-			
-
-	else:
+	if not one_sided_or_two_sided == "double_sided":
+		print "not implemented - requires recalculation of optimal bandwidths and changes in cross-validation functions, since the cross-validation functions are now written to calculate first one side and than another - it's easy to fix that, the normal valdation (not all but one) is almost implemented "
 		for classification_of_interactions in ["positive_interactions", "negative_interactions"]:
 			prob[classification_of_interactions] = prior_elements[mode][classification_of_interactions]["distance"]["prior_frequencies"]
 			bins[classification_of_interactions] = prior_elements[mode][classification_of_interactions]["distance"]["prior_bins"]
@@ -352,106 +250,109 @@ def prior_bins_prob_and_plotter(prior_elements, low_dist, up_dist, use_smooth_pr
 			total_array = [prior_elements[mode][classification_of_interactions]["distance"]["attribute_values"][chrom_] for chrom_ in chroms_in_prior]
 			total_array = np.array(list(itertools.chain.from_iterable(total_array)))
 
-		if plot_atr or plot_atr_kernel:	
 			
-			plt.figure(1, figsize=(8, 8), dpi=200)
-			plt.title("Distance prior", fontsize=20)
-			plt.ylabel('density', fontsize=20)
-			plt.xlabel('distance', fontsize=20)
-
-
-
-			
-		if plot_atr: plot_histogram_priors(bins, prob)
-			
-		if use_smooth_prior_for_estimation or plot_atr_kernel: 
-			
-			prob_smooth, bins_smooth = calculate_or_plot_kern(total_array, low_dist, up_dist, number_of_bins, colour = ("g", "y"))	
 		if use_smooth_prior_for_estimation:
+			
+			prob_smooth, bins_smooth = calculate_kern(total_array, low_dist, up_dist, number_of_bins, colour = ("g", "y"))
+
 			for classification_of_interactions in ["positive_interactions", "negative_interactions"]:
 				prob_smooth_ = prob_smooth[classification_of_interactions][:-1] + np.diff(prob_smooth[classification_of_interactions])/2.
 				prob_smooth_ /= sum(prob_smooth_*np.diff(bins_smooth[classification_of_interactions]))
 
 				[prior_elements[mode][classification_of_interactions]["distance"]["prior_frequencies"], 
 				prior_elements[mode][classification_of_interactions]["distance"]["prior_bins"]] = prob_smooth_, bins_smooth[classification_of_interactions]
+	
 
-
-	if config_variables.mode_of_code == "FULL":
-		name_of_histogram_file = results_folder + 'multipage_priors_average_{0}_{1}'.format(one_sided_or_two_sided, config_variables.mode_of_code)
-
-	elif config_variables.mode_of_code == "GAUSSIAN":
-		name_of_histogram_file = results_folder + 'multipage_priors_average_{0}_{1}'.format(one_sided_or_two_sided, config_variables.mode_of_code)
-
-	else:
-		name_of_histogram_file = results_folder + 'multipage_priors_average_{0}_{1}'.format(one_sided_or_two_sided, "ODD")
-		#name_of_histogram_file = 'multipage_priors_average{0}_{1}_{2}'.format(one_sided_or_two_sided, "_".join(chroms_in_prior), "_".join(chroms_to_infer))
-
-	if plot_atr and plot_atr_kernel:
-		name_of_histogram_file = name_of_histogram_file + "_kern_hist"
-	elif plot_atr_kernel:
-		name_of_histogram_file = name_of_histogram_file + "_kern"
-	elif plot_atr:
-		name_of_histogram_file = name_of_histogram_file + "_hist"
-	else:
-		pass
-
-	name_of_histogram_file = name_of_histogram_file + "{0}_{1}_{2}_{3}".format(config_variables.number_of_bins, config_variables.upstream, config_variables.downstream, config_variables.upstream_t_s)
-
-	if config_variables.disentagled_features_validation: 
-		name_of_histogram_file += "_TSS" 
-	else:
-		name_of_histogram_file += "_GENE"
-
-
-
-	if plot_atr or plot_atr_kernel:	x1,x2,y1,y2 = plt.axis(); plt.axis((x1,x2,0.,y2*1.2)); plt.legend(); pdf = PdfPages(name_of_histogram_file + ".pdf"); pdf.savefig()
-
-	prob={}
-	bins={}
-	attribute_={}
-
-	number_of_bins = config_variables.number_of_bins
-	#number_of_samples = [800000, 800000] 
-
-	for i, data_set_name in enumerate(dataset_names_option):	
-		print data_set_name
-		for classification_of_interactions in ["positive_interactions", "negative_interactions"]:
-			prob[classification_of_interactions] = prior_elements[mode][classification_of_interactions]["correlation"][data_set_name]["prior_frequencies"]
-			bins[classification_of_interactions] = prior_elements[mode][classification_of_interactions]["correlation"][data_set_name]["prior_bins"]
-
-			total_array = [prior_elements[mode][classification_of_interactions]["correlation"][data_set_name]["attribute_values"][chrom_] for chrom_ in chroms_in_prior]
-			total_array = np.array(list(itertools.chain.from_iterable(total_array)))
-
-			attribute_[classification_of_interactions] = total_array
-
-		if plot_atr or plot_atr_kernel: 
-			plt.figure(i+2, figsize=(8, 6), dpi=200)
-			if data_set_name == "ER": plt.title(u'ER-\u03B1', fontsize=20)
-			else: plt.title(data_set_name, fontsize=20)
-			plt.ylabel('density', fontsize=20)
-			plt.xlabel('correlation', fontsize=20)
-			#x1,x2,y1,y2 = plt.axis()
-			#plt.axis((x1,x2,0,y2*1.2))
-			
-			
-			
-		if plot_atr: plot_histogram_priors(bins, prob)				
-		if use_smooth_prior_for_estimation or plot_atr_kernel: 
-			import kern_density_est
-			prob_smooth, bins_smooth = calculate_or_plot_kern("correlation", attribute_, -1., 1., number_of_bins, colour = ("g", "y"))
+	elif one_sided_or_two_sided == "double_sided":		
 
 		if use_smooth_prior_for_estimation:
+
+			for sign, positive_or_negative_side in zip([1, -1], ["positive_side", "negative_side"]):
+
+				prob[positive_or_negative_side] = {}
+				bins[positive_or_negative_side] = {}
+
+				attribute_[positive_or_negative_side] = {}
+				weights[positive_or_negative_side] = {}
+
+				prob_smooth[positive_or_negative_side] = {}
+				bins_smooth[positive_or_negative_side] = {}
+
+				for classification_of_interactions in ["positive_interactions", "negative_interactions"]:
+
+					prob[positive_or_negative_side][classification_of_interactions] = prior_elements[mode][classification_of_interactions]["distance"][positive_or_negative_side]["prior_frequencies"]
+					bins[positive_or_negative_side][classification_of_interactions] = prior_elements[mode][classification_of_interactions]["distance"][positive_or_negative_side]["prior_bins"]
+			
+					total_array = [prior_elements[mode][classification_of_interactions]["distance"]["attribute_values"][chrom_] for chrom_ in chroms_in_prior]
+					total_array = np.array(list(itertools.chain.from_iterable(total_array)))
+
+					attribute_[positive_or_negative_side][classification_of_interactions] = total_array[sign*total_array > 0]
+
+					if domain: 
+						possible_distances_counts = prior_elements[mode][classification_of_interactions]["distance"]["possible_distances_counts"]
+						possible_distances_counts = np.array(possible_distances_counts)[possible_distances_counts <> 0]
+						total_array = np.array(total_array)[possible_distances_counts <> 0]
+						weights[positive_or_negative_side][classification_of_interactions] = (1./possible_distances_counts[sign*total_array > 0])/np.sum(1./possible_distances_counts[sign*total_array > 0])
+						attribute_[positive_or_negative_side][classification_of_interactions] = total_array[sign*total_array > 0]
+
+
+			optimum = calculate_bandwidth_dist(attribute_)
+
+			for sign, positive_or_negative_side in zip([1, -1], ["positive_side", "negative_side"]):
+				print positive_or_negative_side
+
+				prob_smooth[positive_or_negative_side], bins_smooth[positive_or_negative_side] = calculate_kern("distance", attribute_[positive_or_negative_side], low_dist[positive_or_negative_side], up_dist[positive_or_negative_side], number_of_bins, colour = ("g", "y"), weights_ = weights[positive_or_negative_side], bandwidth_pos = optimum["positive_interactions"][positive_or_negative_side], bandwidth_neg = optimum["negative_interactions"][positive_or_negative_side])
+				
+
+			for positive_or_negative_side in ["positive_side", "negative_side"]:
+				for classification_of_interactions in ["positive_interactions", "negative_interactions"]:				
+					if Sample_MoG_classificator and classification_of_interactions == "negative_interactions": continue
+
+					prob_smooth_ = prob_smooth[positive_or_negative_side][classification_of_interactions][:-1] + np.diff(prob_smooth[positive_or_negative_side][classification_of_interactions])/2.
+					prob_smooth_ /= sum(prob_smooth_*np.diff(bins_smooth[positive_or_negative_side][classification_of_interactions]))
+
+					[prior_elements[mode][classification_of_interactions]["distance"][positive_or_negative_side]["prior_frequencies"], 
+					prior_elements[mode][classification_of_interactions]["distance"][positive_or_negative_side]["prior_bins"]] = prob_smooth_, bins_smooth[positive_or_negative_side][classification_of_interactions] # make the histograms smooth
+
+		for classification_of_interactions in ["positive_interactions", "negative_interactions"]:
+			[prior_elements[mode][classification_of_interactions]["distance"]["prior_frequencies"], 
+			prior_elements[mode][classification_of_interactions]["distance"]["prior_bins"]] = join_two_sides_of_prior_together(classification_of_interactions)
+
+
+	if use_smooth_prior_for_estimation:
+
+		prob={}
+		bins={}
+		attribute_={}
+
+		number_of_bins = config_variables.number_of_bins
+
+		
+
+		for i, data_set_name in enumerate(dataset_names_option):
+			print data_set_name
 			for classification_of_interactions in ["positive_interactions", "negative_interactions"]:
-				if config_variables.mode_of_code == "GAUSSIAN" and classification_of_interactions == "negative_interactions": continue
+				prob[classification_of_interactions] = prior_elements[mode][classification_of_interactions]["correlation"][data_set_name]["prior_frequencies"]
+				bins[classification_of_interactions] = prior_elements[mode][classification_of_interactions]["correlation"][data_set_name]["prior_bins"]
+
+				total_array = [prior_elements[mode][classification_of_interactions]["correlation"][data_set_name]["attribute_values"][chrom_] for chrom_ in chroms_in_prior]
+				total_array = np.array(list(itertools.chain.from_iterable(total_array)))
+
+				attribute_[classification_of_interactions] = total_array
+
+			optimum = calculate_bandwidth_correl(attribute_)
+
+			prob_smooth, bins_smooth = calculate_kern("correlation", attribute_, -1., 1., number_of_bins, colour = ("g", "y"), bandwidth_pos = optimum["positive_interactions"], bandwidth_neg = optimum["negative_interactions"])
+
+	
+			for classification_of_interactions in ["positive_interactions", "negative_interactions"]:
+				if Sample_MoG_classificator and classification_of_interactions == "negative_interactions": continue
 				prob_smooth_ = prob_smooth[classification_of_interactions][:-1] + np.diff(prob_smooth[classification_of_interactions])/2.
 				prob_smooth_ /= sum(prob_smooth_*np.diff(bins_smooth[classification_of_interactions]))
 
 				[prior_elements[mode][classification_of_interactions]["correlation"][data_set_name]["prior_frequencies"], 
 				prior_elements[mode][classification_of_interactions]["correlation"][data_set_name]["prior_bins"]] = prob_smooth_, bins_smooth[classification_of_interactions]
 
-		if plot_atr or plot_atr_kernel:	x1,x2,y1,y2 = plt.axis(); plt.axis((x1,x2,0,y2*1.2)); plt.legend(); pdf.savefig()	#plt.ylim(0, plt.ylim()[0]); 
-	
-	if plot_atr_kernel or plot_atr: pdf.close(); plt.close('all')#plt.show()
 		
 	return prior_elements
 

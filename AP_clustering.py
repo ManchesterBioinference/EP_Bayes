@@ -1,18 +1,20 @@
 def concatenator(cluster_mode, merge_time_series_option, count_filter_each_data_set, pol2_rep_correl_filt = False, distant_enh_only = False):
 
 	import config_variables
+	data_folder = config_variables.data_folder
+	#temp_output = config_variables.temp_output
+
 	dataset_time_series_dict = config_variables.dataset_time_series_dict
 	dataset_time_series_dict_mean_std = config_variables.dataset_time_series_dict_mean_std
 	time_points = config_variables.time_points
 	name_of_time_series_file = config_variables.name_of_time_series_file
 	np = config_variables.np
 	link_data_set_name_to_file_name = config_variables.link_data_set_name_to_file_name
-	data_folder = config_variables.data_folder
-	
+
 	name = name_of_time_series_file[cluster_mode]
 	name_of_overlap_file_dict = config_variables.name_of_overlap_file_dict
 
-	merge_time_series_option_ = [name + '_' + el for el in merge_time_series_option]
+	merge_time_series_option_ = [name + '_' + el + ".gz" for el in merge_time_series_option]
 	total_mask = np.ones(len(dataset_time_series_dict[link_data_set_name_to_file_name[cluster_mode]['ER']][0]), bool)
 
 	if type(pol2_rep_correl_filt) == float:
@@ -23,7 +25,7 @@ def concatenator(cluster_mode, merge_time_series_option, count_filter_each_data_
 
 		total_mask = total_mask*(correlations_1 > pol2_rep_correl_filt)	
 
-	for opt in merge_time_series_option_: total_mask = total_mask*(dataset_time_series_dict[opt + ".gz"][2].sum(1) >= count_filter_each_data_set)
+	for opt in merge_time_series_option_: total_mask = total_mask*(dataset_time_series_dict[opt][2].sum(1) >= count_filter_each_data_set)
 
 	
 	if distant_enh_only:
@@ -43,8 +45,11 @@ def concatenator(cluster_mode, merge_time_series_option, count_filter_each_data_
 
 	survived_indexes = np.where(total_mask)[0]
 	import os as os
-	path_to_R = os.getcwd() + "/R_scripts/"
+	path_to_R = os.getcwd() + "/R_scripts/AP_clustering_output/"
+	if not os.path.exists(path_to_R): os.makedirs(path_to_R)
+	
 	name_of_merged_time_series_to_cluster = name_of_merged_time_series_to_cluster[len(data_folder):]
+
 	np.savetxt(path_to_R + name_of_merged_time_series_to_cluster + "_survived_indexes", survived_indexes)
 	np.savetxt(path_to_R + name_of_merged_time_series_to_cluster, concat_set, delimiter=',')
 

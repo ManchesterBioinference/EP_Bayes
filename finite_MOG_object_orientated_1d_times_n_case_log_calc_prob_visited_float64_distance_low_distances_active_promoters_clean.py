@@ -27,15 +27,24 @@ dataset_time_series_dict = config_variables.dataset_time_series_dict
 link_data_set_name_to_file_name = config_variables.link_data_set_name_to_file_name
 datasets_names = config_variables.datasets_names
 log_distances = config_variables.log_distances
+test_prior = config_variables.test_prior
+interacting_enhancers_only_MOG = config_variables.interacting_enhancers_only_MOG
+
 
 
 class finite_mix:
-	def __init__(self, probabilities_of_a_bin, adequate_histogram_bins, active_promoters, active_promoters_time_series, peaks, X, chrom_enh_survived, enh_coords, chrom, kappa_0, mu_0, alpha_0, Beta_0, output, mode_of_sampler):
+	def __init__(self, probabilities_of_a_bin, adequate_histogram_bins, active_promoters, active_promoters_time_series, peaks, X, chrom_enh_survived, enh_coords, chrom, kappa_0, mu_0, alpha_0, Beta_0, output, output_likelihood, mode_of_sampler): #output_mean, output_std, mode_of_sampler):
 		
 		self.mode_of_sampler = mode_of_sampler
 		self.chrom = chrom
 		#self.emp_distances = emp_distances
 		self.output = output
+		
+
+		self.output_likelihood = output_likelihood
+		#self.output_mean = output_mean
+		#self.output_std = output_std
+
 		self.chrom_enh_survived = chrom_enh_survived
 		self.enh_coords = enh_coords	
 	
@@ -66,7 +75,7 @@ class finite_mix:
 		self.Beta_0 = 1./float(Beta_0) # converts scale to rate, parameters should be given in scale. Derivations are in rate
 		#self.mu_0 = np.zeros(self.D)
 
-		if self.mode_of_sampler == "distance_MOG_empir_mu":
+		if mode_of_sampler == "distance_MOG_empir_mu":
 			self.mu_0 = self.active_promoters_time_series
 			
 		self.time_series = np.r_[self.active_promoters_time_series, self.X]
@@ -77,7 +86,7 @@ class finite_mix:
 				
 		self.gaussian_const = -0.5*float(self.D)*np.log(2.0*np.pi)
 
-		
+		if test_prior: self.total_dist = []
 
 		self.vec_gamma = np.vectorize(np.random.gamma)
 		self.vec_normal = np.vectorize(np.random.normal)
@@ -109,8 +118,11 @@ class finite_mix:
 				negative_distances = self.dist[neg_dist]
 				positive_distances = self.dist[np.invert(neg_dist)]
 
-			distance_prob_component_neg = self.allocate_to_empirical_probabilities_in_histogram(negative_distances, adequate_histogram_bins, probabilities_of_a_bin)[0]
-			distance_prob_component_pos = self.allocate_to_empirical_probabilities_in_histogram(positive_distances, adequate_histogram_bins, probabilities_of_a_bin)[0]
+			self.dist[neg_dist] = negative_distances
+			self.dist[np.invert(neg_dist)] = positive_distances 
+
+			distance_prob_component_neg = self.allocate_to_empirical_probabilities_in_histogram(negative_distances, adequate_histogram_bins, probabilities_of_a_bin)[1]
+			distance_prob_component_pos = self.allocate_to_empirical_probabilities_in_histogram(positive_distances, adequate_histogram_bins, probabilities_of_a_bin)[1]
 
 			self.distance_prob_component = np.zeros_like(self.dist)
 			self.distance_prob_component[neg_dist] = distance_prob_component_neg
@@ -120,6 +132,17 @@ class finite_mix:
 			self.labels = np.arange(self.cl)
 			self.c = self.labels[np.random.randint(0, self.K, self.J)] # generates randint(1,K) times self.N. Randint generates from as if from range(1,21) = list <1,20>
 			self.c = np.r_[np.arange(self.K), self.c]
+
+			if interacting_enhancers_only_MOG:
+
+				interacting_enhancers = self.inter_enhancer(chrom)
+				self.interacting_enhancers = interacting_enhancers
+
+				self.c = np.zeros(self.J, int)-1
+				self.c[interacting_enhancers] = self.labels[np.random.randint(0, self.K, len(interacting_enhancers))] # generates randint(1,K) times self.N. Randint generates from as if from range(1,21) = list <1,20>
+				self.c = np.r_[np.arange(self.K), self.c]
+
+				
 
 		#self.matching_label_matrix = np.zeros((self.cl, self.N))
 		if mode_of_sampler <> "distance_prior":
@@ -142,10 +165,18 @@ class finite_mix:
 			#self._standard_dev_trace.append(copy.deepcopy(self.standard_dev))
 			#self._alpha_trace.append(self.alpha)
 			self.update_c_new()
-			print self.c
+			#print self.c
+			if test_prior: 
+				distances_of_interacting_enhancers = self.test_priors_funct(self.dist[np.arange(self.J), self.c[self.K:]])
+				self.total_dist += distances_of_interacting_enhancers.tolist()
 			self.save_to_to_file_by_line()
 			#t_new = time.time()
-			if self.mode_of_sampler <> "distance_prior": self.update_mean_and_standard_deviation_2()
+			
+			if self.mode_of_sampler <> "distance_prior": 
+				self.calculate_likelihood_of_X_max_ne()
+				self.update_mean_and_standard_deviation_2()
+				
+				#if k%10==0:self.save_to_to_file_by_line_mean_and_std()
 			#print "update_std =", time.time() - t_new
 			#self.update_alpha() - we fix it for a time being since it has to be sampled from adaptive rejection sampling
 			#self.update_beta()    
@@ -154,16 +185,81 @@ class finite_mix:
 				t_old = t_new
 				t_new = time.time()				
 				print k, t_new - t_old, t_new - t_iter
+			print k, t_new - t_old, t_new - t_iter
+
+	def test_priors_funct(self, distances_per_sample):
+		from prepare_interactions_clean import un_string
+		chrom = self.chrom
+		negative_interactions = config_variables.negative_interactions
+		indexes_p, indexes_e, total_p, total_e = negative_interactions.initialise_variables(chrom)[2:]
+
+		if config_variables.disentagled_features_validation: 
+			chr_interactions_pro_enh = config_variables.chr_interactions_dict_pro_enh_TSS[chrom]
+		else:
+			chr_interactions_pro_enh = config_variables.chr_interactions_dict_pro_enh[chrom]
+
+		true_inter_pro = un_string(chr_interactions_pro_enh[:, :2]).astype(int)
+
+		i_s_t, j_s_t = true_inter_pro[:,0], true_inter_pro[:,1]
+		interacting_enhancers = np.unique(j_s_t)-total_e
+
+		take_distances_array = np.zeros(len(indexes_e))
+		take_distances_array[self.chrom_enh_survived-total_e] = distances_per_sample
+		distaces_of_interacting_enhancers = take_distances_array[interacting_enhancers]
+		return distaces_of_interacting_enhancers
+		#interacting_enhancers_mask = np.zeros(indexes_e).astype(bool)
+		#interacting_enhancers_mask[interacting_enhancers] = True
+
+
+	def inter_enhancer(self, chrom):
+
+		negative_interactions = config_variables.negative_interactions
+		from  prepare_interactions_clean import un_string
+
+		indexes_p, indexes_e, total_p, total_e = negative_interactions.initialise_variables(chrom)[2:]
+
+		if config_variables.disentagled_features_validation: 
+			chr_interactions_pro_enh = config_variables.chr_interactions_dict_pro_enh_TSS[chrom]
+		else:
+			chr_interactions_pro_enh = config_variables.chr_interactions_dict_pro_enh[chrom]
+
+		true_inter_pro = un_string(chr_interactions_pro_enh[:, :2]).astype(int)
+
+		i_s_t, j_s_t = true_inter_pro[:,0], true_inter_pro[:,1]
+
+		interacting_enhancers_ = np.unique(j_s_t)-total_e
+
+		enhancer_array_survived = np.zeros(len(indexes_e), bool)
+		enhancer_array_interacting = np.zeros(len(indexes_e), bool)
+
+		enhancer_array_survived[self.chrom_enh_survived-total_e] = True
+		enhancer_array_interacting[interacting_enhancers_] = True
+
+		mask_interacting_c = np.in1d(np.where(enhancer_array_survived)[0], np.where(enhancer_array_interacting)[0])
+
+		return np.where(mask_interacting_c)[0]
+
 
 	def save_to_to_file_by_line(self):
-		self.output.write(",".join(copy.deepcopy(self.c[self.K:]).astype(str))+"\n")
+		if self.mode_of_sampler == "dirichlet_MOG":
+			self.output.write(",".join(copy.deepcopy(self.c).astype(str))+"\n")
+		else:
+			self.output.write(",".join(copy.deepcopy(self.c[self.K:]).astype(str))+"\n")
 		#print ",".join(copy.deepcopy(self.c[self.K:]).astype(str))
+
+	def save_to_to_file_by_line_mean_and_std(self):
+		np.savetxt(self.output_mean, self.mean.reshape(1,self.mean.size))
+		#self.output_mean.write("\n")
+
+		np.savetxt(self.output_std, self.standard_dev.reshape(1,self.standard_dev.size))
+
+
 	def data_mean_std_normalisation(self, ts_to_norm):
 		means=np.mean(ts_to_norm, axis=1)
 		st_dev=np.std(ts_to_norm, axis=1)
 		norm_time_series = (ts_to_norm-means[:, None]) / st_dev[:, None]
 
-		return norm_time_series		
+		return norm_time_series
 
 	def add_noise(self):
 		for index in len(self.X):
@@ -258,7 +354,7 @@ class finite_mix:
 			X = self.X
 
 
-		X, mean, variance = X[:, np.newaxis], self.mean, self.variance 
+		X, mean, variance = X[:, np.newaxis], self.mean, self.variance
 		expre = "(X - mean)**2/ variance"
 		g = ne.evaluate(expre)
 
@@ -272,6 +368,27 @@ class finite_mix:
 #	def weighted_values(values, probabilities, size):
 #		bins = np.cumsum(probabilities, axis (1))
 #		return values[np.digitize(random_sample(size), bins)]
+
+	def calculate_likelihood_of_X_max_ne(self):
+
+		mean, variance = self.mean, self.variance
+
+		if self.mode_of_sampler == "dirichlet_MOG": 
+			X_ = self.time_series
+			c_ = self.c
+		else: 
+			X_ = self.X
+			c_ = self.c[self.K:]
+
+		if interacting_enhancers_only_MOG:
+			c_ = c_[self.interacting_enhancers]
+			X_ = X_[self.interacting_enhancers]
+
+		likelihood = -0.5*np.sum(np.log(variance[c_]*2.*np.pi) + (X_ - mean[c_])**2./variance[c_])
+
+		np.savetxt(self.output_likelihood, [likelihood], fmt='%1.6e')
+
+		#return likelihood
 
 
 
@@ -313,7 +430,12 @@ class finite_mix:
 
 		else: 
 			samples = random_sample(self.J)
-			self.c[self.K:] = self.labels[(samples[:,None] <= bins).argmax(1)]
+
+			if interacting_enhancers_only_MOG:
+				self.c[self.K + self.interacting_enhancers] = (self.labels[(samples[:,None] <= bins).argmax(1)])[self.interacting_enhancers]
+
+			else:
+				self.c[self.K:] = self.labels[(samples[:,None] <= bins).argmax(1)]
 
 
 
@@ -409,14 +531,13 @@ class finite_mix:
 
 		#matches, time_series
 
-		#sum_squared_term = np.dot(matches, time_series**2) - lengths_k[:,None]*emp_means_k**2  # wrong 
+		sum_squared_term = np.dot(matches, time_series**2) - lengths_k[:,None]*emp_means_k**2  # devide the equation by N*1/N then terms sum_i(bar(x)*x_i) will = 2bar(x)^2 https://www.strchr.com/standard_deviation_in_one_pass
 
-		#Betas_k = self.Beta_0 + 0.5*sum_squared_term + 0.5*self.kappa_0*(emp_means_k-self.mu_0)**2.0*(lengths_k/kappas_k)[:,None]
+		Betas_k = self.Beta_0 + 0.5*sum_squared_term + 0.5*self.kappa_0*(emp_means_k-self.mu_0)**2.0*(lengths_k/kappas_k)[:,None]
 
-		sum_squared_term = np.zeros((self.K, self.D))
-		for k in np.arange(self.K): sum_squared_term[k] = 0.5*np.sum((time_series[matches[k]]-emp_means_k[k])**2.0, axis=0)
-
-		Betas_k = self.Beta_0 + sum_squared_term + 0.5*self.kappa_0*(emp_means_k-self.mu_0)**2.0*(lengths_k/kappas_k)[:,None]
+		#sum_squared_term = np.zeros((self.K, self.D))
+		#for k in np.arange(self.K): sum_squared_term[k] = 0.5*np.sum((time_series[matches[k]]-emp_means_k[k])**2.0, axis=0)
+		#Betas_k = self.Beta_0 + sum_squared_term + 0.5*self.kappa_0*(emp_means_k-self.mu_0)**2.0*(lengths_k/kappas_k)[:,None]
 
 		#for k in np.arange(self.K): Betas_k[k] = self.Beta_0 + 0.5*np.sum((self.time_series[matches[k]]-emp_means_k[k])**2.0, axis=0) + 0.5*self.kappa_0*lengths_k[k]*(emp_means_k[k]-self.mu_0)**2.0/kappas_k[k]
 
@@ -468,8 +589,9 @@ class finite_mix:
 #		self.variance=self.standard_dev**2.0
 
 
-def executor(mode_of_sampler, number_of_samples, option_correl, chrom):
+def executor(arr):
 
+	mode_of_sampler, number_of_samples, option_correl, chrom, chain_number, continue_sampling = arr
 
 	pro_chroms, pro_coords, pro_time_series = dataset_time_series_dict[link_data_set_name_to_file_name["promoters"]["ER"]]
 	enh_chroms, enh_coords, enh_time_series = dataset_time_series_dict[link_data_set_name_to_file_name["enhancers"]["ER"]]
@@ -495,7 +617,7 @@ def executor(mode_of_sampler, number_of_samples, option_correl, chrom):
 
 			ts_to_norm = dataset_time_series_dict[link_data_set_name_to_file_name[feature][datasets_name]][2]
 
-			concat[feature][datasets_name] = data_mean_std_normalisation(ts_to_norm)
+			concat[feature][datasets_name] = data_mean_std_normalisation(ts_to_norm)#data_mean_std_normalisation(ts_to_norm)
 
 		concat[feature]["total"] = np.column_stack([concat[feature][el] for el in datasets_names[option_correl]])
 
@@ -509,17 +631,89 @@ def executor(mode_of_sampler, number_of_samples, option_correl, chrom):
 	comb = "_".join([config_variables.dict_option[el] for el in option_correl])
 	kappa_0, mu_0, alpha_0, Beta_0 = config_variables.kappa_0, config_variables.mu_0, config_variables.alpha_0, config_variables.Beta_0
 
-	if mode_of_sampler == "distance_prior": name = 'prior_distance_trace_of_c_{0}_{1}'.format(chrom, number_of_samples)
-	elif mode_of_sampler == "distance_MOG": name = 'MOG_distance_trace_of_c_{0}_{1}_{2}_{3}_{4}_{5}_{6}'.format(kappa_0, mu_0, alpha_0, Beta_0, chrom, comb, number_of_samples)
-	elif mode_of_sampler == "dirichlet_MOG": name = 'MOG_dirichlet_trace_of_c_{0}_{1}_{2}_{3}_{4}_{5}_{6}'.format(kappa_0, mu_0, alpha_0, Beta_0, chrom, comb, number_of_samples)
-	elif mode_of_sampler == "distance_MOG_empir_mu": name = 'MOG_distance_emprirical_mu_trace_of_c_{0}_{1}_{2}_{3}_{4}_{5}_{6}'.format(kappa_0, mu_0, alpha_0, Beta_0, chrom, comb, number_of_samples)
-	
-	output = open(save_to_folder + name, 'w')
+	#if mode_of_sampler == "distance_prior": name = 'prior_distance_trace_of_c_{0}_{1}'.format(chrom, number_of_samples)
+	#elif mode_of_sampler == "distance_MOG": name = 'MOG_distance_trace_of_c_{0}_{1}_{2}_{3}_{4}_{5}_{6}'.format(kappa_0, mu_0, alpha_0, Beta_0, chrom, comb, number_of_samples)
+	#elif mode_of_sampler == "dirichlet_MOG": name = 'MOG_dirichlet_trace_of_c_{0}_{1}_{2}_{3}_{4}_{5}_{6}'.format(kappa_0, mu_0, alpha_0, Beta_0, chrom, comb, number_of_samples)
+	#elif mode_of_sampler == "distance_MOG_empir_mu": name = 'MOG_distance_emprirical_mu_trace_of_c_{0}_{1}_{2}_{3}_{4}_{5}_{6}'.format(kappa_0, mu_0, alpha_0, Beta_0, chrom, comb, number_of_samples)
 
-	dog = finite_mix(probabilities_of_a_bin, adequate_histogram_bins, promoter_coordinates_chrom_survived, promoter_time_series_chrom_survived, enhancer_coordinates_chrom_survived, enhancer_time_series_chrom_survived,  chrom_enh_survived, enh_coords, chrom, kappa_0, mu_0, alpha_0, Beta_0, output, mode_of_sampler)
+	if mode_of_sampler == "distance_prior":	
+		name = 'prior_distance_trace_of_c_{0}_{1}'.format(chrom, number_of_samples)
+		output_likelihood = None	
+		#name_likelihood = 'prior_distance_trace_of_likelihood_{0}_{1}'.format(chrom, number_of_samples)
+
+	elif mode_of_sampler == "distance_MOG": 
+		name = 'MOG_distance_trace_of_c_{0}_{1}_{2}_{3}_{4}_{5}_{6}_{7}'.format(kappa_0, mu_0, alpha_0, Beta_0, chrom, comb, number_of_samples, chain_number)
+		name_std = 'MOG_distance_trace_of_std_{0}_{1}_{2}_{3}_{4}_{5}_{6}_{7}'.format(kappa_0, mu_0, alpha_0, Beta_0, chrom, comb, number_of_samples, chain_number)
+		name_mean = 'MOG_distance_trace_of_mean_{0}_{1}_{2}_{3}_{4}_{5}_{6}_{7}'.format(kappa_0, mu_0, alpha_0, Beta_0, chrom, comb, number_of_samples, chain_number)
+
+	elif mode_of_sampler == "dirichlet_MOG": 
+		name = 'MOG_dirichlet_trace_of_c_{0}_{1}_{2}_{3}_{4}_{5}_{6}_{7}'.format(kappa_0, mu_0, alpha_0, Beta_0, chrom, comb, number_of_samples, chain_number)
+		name_std = 'MOG_dirichlet_trace_of_std_{0}_{1}_{2}_{3}_{4}_{5}_{6}_{7}'.format(kappa_0, mu_0, alpha_0, Beta_0, chrom, comb, number_of_samples, chain_number)
+		name_mean = 'MOG_dirichlet_trace_of_mean_{0}_{1}_{2}_{3}_{4}_{5}_{6}_{7}'.format(kappa_0, mu_0, alpha_0, Beta_0, chrom, comb, number_of_samples, chain_number)
+
+	elif mode_of_sampler == "distance_MOG_empir_mu": 
+		name = 'MOG_distance_emprirical_mu_trace_of_c_{0}_{1}_{2}_{3}_{4}_{5}_{6}_{7}'.format(kappa_0, mu_0, alpha_0, Beta_0, chrom, comb, number_of_samples, chain_number)
+		name_std = 'MOG_distance_emprirical_mu_trace_of_std_{0}_{1}_{2}_{3}_{4}_{5}_{6}_{7}'.format(kappa_0, mu_0, alpha_0, Beta_0, chrom, comb, number_of_samples, chain_number)
+		name_mean = 'MOG_distance_emprirical_mu_trace_of_mean_{0}_{1}_{2}_{3}_{4}_{5}_{6}_{7}'.format(kappa_0, mu_0, alpha_0, Beta_0, chrom, comb, number_of_samples, chain_number)
+		name_likelihood = 'MOG_distance_emprirical_mu_trace_of_likelihood_{0}_{1}_{2}_{3}_{4}_{5}_{6}_{7}'.format(kappa_0, mu_0, alpha_0, Beta_0, chrom, comb, number_of_samples, chain_number)
+
+	if continue_sampling:
+
+		output = open(save_to_folder + name, 'r')
+		for line in output: pass
+		last = map(int, line[:-1].split(','))
+		output.close()
+
+		if mode_of_sampler <> "distance_prior":
+			name_likelihood__ = save_to_folder + name_likelihood
+			likelihoods = np.loadtxt(name_likelihood__, dtype=float)[:-1]
+			np.savetxt(name_likelihood__, likelihoods, fmt='%1.6e')
+
+		name_2 = save_to_folder + 'MOG_distance_emprirical_mu_trace_of_c_{0}_{1}_{2}_{3}_{4}_{5}_{6}_{7}'.format(kappa_0, mu_0, alpha_0, Beta_0, chrom, comb, 2*number_of_samples, chain_number)
+		name_likelihood_2 = save_to_folder + 'MOG_distance_emprirical_mu_trace_of_likelihood_{0}_{1}_{2}_{3}_{4}_{5}_{6}_{7}'.format(kappa_0, mu_0, alpha_0, Beta_0, chrom, comb, 2*number_of_samples, chain_number) 
+
+		output = open(name_2, 'w')
+		if mode_of_sampler <> "distance_prior": output_likelihood = open(name_likelihood_2, 'w')
+
+	else:	
+
+		output = open(save_to_folder + name, 'w')
+		if mode_of_sampler <> "distance_prior": output_likelihood = open(save_to_folder + name_likelihood, 'w')
+
+		
+	#output_mean = open(save_to_folder + name_mean, 'w')
+	#output_std = open(save_to_folder + name_std, 'w')
+
+	dog = finite_mix(probabilities_of_a_bin, adequate_histogram_bins, promoter_coordinates_chrom_survived, promoter_time_series_chrom_survived, enhancer_coordinates_chrom_survived, enhancer_time_series_chrom_survived,  chrom_enh_survived, enh_coords, chrom, kappa_0, mu_0, alpha_0, Beta_0, output, output_likelihood, mode_of_sampler)#output_mean, output_std, 
+
+	if continue_sampling:
+		dog.c[dog.K:] = last
+		dog.update_mean_and_standard_deviation_2()
+
+		if mode_of_sampler <> "distance_prior": dog.calculate_likelihood_of_X_max_ne()
+
 	dog.sample(number_of_samples)
 
+
 	#dog.results_saver()
+
+
 	output.close()
+	if mode_of_sampler <> "distance_prior": output_likelihood.close()
+
+	#output_mean.close()
+	#output_std.close()
+
+	#if continue_sampling:
+		#name = save_to_folder + 'MOG_distance_emprirical_mu_trace_of_c_{0}_{1}_{2}_{3}_{4}_{5}_{6}_{7}'.format(kappa_0, mu_0, alpha_0, Beta_0, chrom, comb, number_of_samples, chain_number)
+		#name_likelihood = save_to_folder + 'MOG_distance_emprirical_mu_trace_of_likelihood_{0}_{1}_{2}_{3}_{4}_{5}_{6}_{7}'.format(kappa_0, mu_0, alpha_0, Beta_0, chrom, comb, number_of_samples, chain_number)
+
+		#os.system("mv {0} {1}".format(name, name_2))
+		#os.system("mv {0} {1}".format(name_likelihood, name_likelihood_2))
+
+	if test_prior:
+
+		return dog.total_dist[1:]
 	#dog.results_saver()
+	#return 1
 

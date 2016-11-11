@@ -1,9 +1,11 @@
 args <- commandArgs(TRUE)
 
 library(matrixStats)
-cwd = getwd()
+cwd <- getwd()
 
-#setwd(paste(getwd(), "R_scripts" ,sep = "/"))
+update_cwd = paste(cwd, "AP_clustering_output" ,sep = "/")
+print(update_cwd)
+setwd(update_cwd)
 
 print(getwd())
 

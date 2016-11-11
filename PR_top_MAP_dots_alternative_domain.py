@@ -1,14 +1,19 @@
-def execute(sensitivity_match_MAP, number_of_interacting_enhancers_, option_to_plot = "ALL"):
+def execute(sensitivity_match_MAP, number_of_interacting_enhancers_, option_to_plot = "ALL", type_of_models = [], posterior_MOG = None, kappa_0=1.0, mu_0=1.0, alpha_0=1.0, Beta_0=1.0, number_of_samples=10, burn_in=0):
 
 	#----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 	from matplotlib.backends.backend_pdf import PdfPages
 	import config_variables
+	import numpy as np
 	results_folder = config_variables.results_folder
 
-	name_of_output_FDR_file = results_folder + 'FDR_file_{0}_{1}_{4}_{2}_{3}_average_PolII'.format(config_variables.chroms_in_prior[0], config_variables.chroms_to_infer[0], config_variables.one_sided_or_two_sided, config_variables.use_smooth_prior_for_estimation, config_variables.number_of_bins)
+	name_of_output_FDR_file = results_folder + 'ATEST_FDR_file_{0}_{1}_{4}_{2}_{3}_average_PolII'.format(config_variables.chroms_in_prior[0], config_variables.chroms_to_infer[0], config_variables.one_sided_or_two_sided, config_variables.use_smooth_prior_for_estimation, config_variables.number_of_bins)
+
+	name_of_output_FDR_file	+= "_{0}".format("_".join(type_of_models))
 
 	name_of_output_FDR_file += "_{0}_{1}_{2}".format(config_variables.upstream, config_variables.downstream, config_variables.upstream_t_s)
+
+	#name_of_output_FDR_file += "_{0}_{1}".format("_".join(np.array(number_of_samples,str)), "_".join(np.array(burn_in, str)))
 
 	if config_variables.disentagled_features_validation: 
 
@@ -17,8 +22,10 @@ def execute(sensitivity_match_MAP, number_of_interacting_enhancers_, option_to_p
 		name_of_output_FDR_file += "_GENE"
 	if option_to_plot == "ALL": name_of_output_FDR_file += "_ALL"
 
+	if "MOG_correl_dist" in type_of_models or "MOG_dist" in type_of_models: name_of_output_FDR_file += "_MOG_{0}_{1}_{2}_{3}_{4}_{5}__test".format(kappa_0, mu_0, alpha_0, Beta_0, "_".join(np.array(number_of_samples, str)), "_".join(np.array(burn_in, str)))
 
 	pdf = PdfPages(name_of_output_FDR_file + ".pdf")
+
 
 
 	np = config_variables.np
@@ -35,20 +42,40 @@ def execute(sensitivity_match_MAP, number_of_interacting_enhancers_, option_to_p
 		else:
 			name_of_output_file_with_thresholds_estimated_on_odd_even_chromosomes += "_GENE"
 
+		if "MOG_correl_dist" in type_of_models or "MOG_dist" in type_of_models: 
+			name_of_output_file_with_thresholds_estimated_on_odd_even_chromosomes += "_{0}".format("_".join(type_of_models))
+			name_of_output_file_with_thresholds_estimated_on_odd_even_chromosomes += "_MOG_{0}_{1}_{2}_{3}_{4}_{5}__test".format(kappa_0, mu_0, alpha_0, Beta_0, "_".join(np.array(number_of_samples, str)), "_".join(np.array(burn_in, str)))
+
+
 		output = open(name_of_output_file_with_thresholds_estimated_on_odd_even_chromosomes, "w")
 		output.write("#" + "\t".join(["Data_set", "FDR", "Precision", "True_links_above_FDR", "Threshold"]) + "\n")	
 
-	def extract_TSS_coordinates(upstream):
 
-		data = np.loadtxt(config_variables.name_of_time_series_promoter_file_for_TSS_start, dtype = str,  delimiter = '\t')	
-		plus_strand = data[:, 4] == '+'
-		TSS_coordinates = np.zeros(len(plus_strand), int)
-		TSS_coordinates[plus_strand] = data[plus_strand, 1].astype(int) + upstream
-		TSS_coordinates[np.invert(plus_strand)] = data[np.invert(plus_strand), 2].astype(int) + upstream
 
-		return TSS_coordinates
 
-	TSS_coordinates = extract_TSS_coordinates(config_variables.upstream)
+	save_file_with_cutoffs = True
+	if save_file_with_cutoffs:
+		
+		name_of_output_file_with_cutoffs_estimated_on_odd_even_chromosomes = results_folder + "file_with_cutoffs_{0}_{1}_smo_{2}_{3}".format(config_variables.chroms_in_prior[0], config_variables.chroms_to_infer[0], config_variables.use_smooth_prior_for_estimation, config_variables.number_of_bins)
+
+		name_of_output_file_with_cutoffs_estimated_on_odd_even_chromosomes += "_{0}_{1}_{2}".format(config_variables.upstream, config_variables.downstream, config_variables.upstream_t_s)
+
+		if config_variables.disentagled_features_validation:
+			name_of_output_file_with_cutoffs_estimated_on_odd_even_chromosomes += "_TSS"
+		else:
+			name_of_output_file_with_cutoffs_estimated_on_odd_even_chromosomes += "_GENE"
+
+		if "MOG_correl_dist" in type_of_models or "MOG_dist" in type_of_models: 
+			name_of_output_file_with_cutoffs_estimated_on_odd_even_chromosomes	+= "_{0}".format("_".join(type_of_models))
+			name_of_output_file_with_cutoffs_estimated_on_odd_even_chromosomes += "_MOG_{0}_{1}_{2}_{3}_{4}_{5}__test".format(kappa_0, mu_0, alpha_0, Beta_0, "_".join(np.array(number_of_samples, str)), "_".join(np.array(burn_in, str)))
+
+
+		output_2 = open(name_of_output_file_with_cutoffs_estimated_on_odd_even_chromosomes, "w")
+		output_2.write("#" + "\t".join(["Data_set", "Mode", "Cutoff10%", "Cutoff20%", "Cutoff30%"]) + "\n")	
+
+
+
+	TSS_coordinates = config_variables.negative_interactions.extract_TSS_coordinates(config_variables.upstream)
 
 	def positive_negative_interactions_for_MAP(chrom):
 		
@@ -267,32 +294,11 @@ def execute(sensitivity_match_MAP, number_of_interacting_enhancers_, option_to_p
 
 	#stuff = [0, 1, 2, 3, 4]
 
-	stuff = [1, 2, 3, 4]
-	#stuff = [0, 2, 3, 4]
-	combinations = []
-
+	import selected_combinations as sel
+	combinations, selected_combinations = sel.selected_combinations(option_to_plot)
 
 	filter_values_ = filter_values[[0]]
 
-
-	for L in range(0, len(stuff)+1):
-		for subset in itertools.combinations(stuff, L):
-			if len(subset): combinations += [list(subset)]
-
-	#option_ = combinations[-1]
-	#filter_value = -1.
-	#selected_combinations = [combinations[ind] for ind in [0, 1, 3, 5, 7, 10, 16]]
-
-	#selected_combinations = np.array(combinations)[[0, 2, 5, 10, 14]].tolist()
-
-	#selected_combinations = np.array(combinations)[[2, 5]].tolist()
-
-	if option_to_plot == "ALL": 
-		selected_combinations = combinations
-	elif option_to_plot == "SELECTIVE":
-		selected_combinations = np.array(combinations)[[0, 2, 5, 10, 14]].tolist()
-
-	#selected_combinations = [[0], [1], [3], [0,1], [0,3], [1,3], [0,1,3]]
 
 	#http://stackoverflow.com/questions/14270391/python-matplotlib-multiple-bars - alternatively
 	#http://matplotlib.org/examples/pylab_examples/subplots_demo.html
@@ -303,80 +309,86 @@ def execute(sensitivity_match_MAP, number_of_interacting_enhancers_, option_to_p
 	dict_option_ = dict_option
 	datasets_names_ = datasets_names
 
-	threshold_1_dist_correl, threshold_2_dist_correl, threshold_3_dist_correl = {}, {}, {}
-	threshold_1_correl, threshold_2_correl, threshold_3_correl = {}, {}, {}
-	threshold_1_dist, threshold_2_dist, threshold_3_dist = {}, {}, {}
-	if config_variables.MoG_classificator: threshold_1_dist_correl_MOG, threshold_2_dist_correl_MOG, threshold_3_dist_correl_MOG = {}, {}, {}
+	if "correl_dist" in type_of_models: threshold_1_dist_correl, threshold_2_dist_correl, threshold_3_dist_correl = {}, {}, {}
+	if "correl" in type_of_models: threshold_1_correl, threshold_2_correl, threshold_3_correl = {}, {}, {}
+	if "dist" in type_of_models: threshold_1_dist, threshold_2_dist, threshold_3_dist = {}, {}, {}
+	if "MOG_correl_dist" in type_of_models: threshold_1_dist_correl_MOG, threshold_2_dist_correl_MOG, threshold_3_dist_correl_MOG = {}, {}, {}
+	if "MOG_dist" in type_of_models: threshold_1_dist_MOG, threshold_2_dist_MOG, threshold_3_dist_MOG = {}, {}, {}
+	
 
-	total_number_of_interacting_enhancers = config_variables.total_number_of_interacting_enhancers
+	#total_number_of_interacting_enhancers = config_variables.total_number_of_interacting_enhancers
 
-	for domain_atr, domain, invert_domain, thresh, give_indexes_for_thresholds in [[None, False, False, True, False], ["within_domain", True, False, False, True], ["outside_domain", True, True, False, True]]:
+	posterior_correl_dist_true_unsplit, posterior_correl_dist_false_unsplit = {}, {}
+	posterior_correl_true_unsplit, posterior_correl_false_unsplit = {}, {}
+	posterior_correl_dist_true_unsplit_MOG, posterior_correl_dist_false_unsplit_MOG = {}, {}
 
-		#f, ax = plt.subplots(len(filter_values_), len(selected_combinations), sharex=True, sharey=True)
-		#ax[0,0].plot(x, y)
-		#f.subplots_adjust(hspace=0.1)
-		#f.subplots_adjust(wspace=0.1)
+
+
+	for domain_atr, domain, invert_domain, thresh, give_indexes_for_thresholds in np.array([[None, False, False, True, False], ["within_domain", True, False, False, True], ["outside_domain", True, True, False, True]])[0:3]:
 
 		if option_to_plot == "ALL":
-			f, ax = plt.subplots(1, len(selected_combinations), sharex=True, sharey=True, figsize=(50,10))
-			f.subplots_adjust(left=0.035, bottom=0.1, right=0.975, top=0.925, hspace=0.1, wspace=0.1)
 			plt.rcParams['xtick.labelsize'] = 28
 			plt.rc('ytick', labelsize = 28)
+			f, ax = plt.subplots(1, len(selected_combinations), sharex=True, sharey=True, figsize=(50,10))
+			f.subplots_adjust(left=0.035, bottom=0.1, right=0.975, top=0.925, hspace=0.1, wspace=0.1)
 			red_blue_yellow_cyan_marker_size = 12
-			red_blue_yellow_cyan_marker_size_legend_box = 18
-			legend_box_names_font_size = 22
+			red_blue_yellow_cyan_marker_size_legend_box = 19
+			legend_box_names_font_size = 20
 			size_of_combination_name = 23
 			size_of_y_label = 30
 
 			ax[0].set_ylabel('Precision', fontsize = size_of_y_label)
 
-			import matplotlib.lines as mlines
-			blue_line = mlines.Line2D([], [], color='blue', marker='^', markersize = red_blue_yellow_cyan_marker_size_legend_box, label='data + prior')
-			yellow_line = mlines.Line2D([], [], color='yellow', marker='s', markersize = red_blue_yellow_cyan_marker_size_legend_box, label='prior')
-			red_line = mlines.Line2D([], [], color='red', marker='o', markersize = red_blue_yellow_cyan_marker_size_legend_box, label='data')
-			pink_line = mlines.Line2D([], [], color='cyan', marker='*', markersize = red_blue_yellow_cyan_marker_size_legend_box, label='MOG')
-			#handles, labels = ax[0].get_legend_handles_labels()
-			#ax[0].legend(handles, labels, fontsize = legend_box_names_font_size)
 
 
 		elif option_to_plot == "SELECTIVE":
+			plt.rcParams['xtick.labelsize'] = 28
+			plt.rc('ytick', labelsize = 28)
 			f, ax = plt.subplots(1, len(selected_combinations), sharex=True, sharey=True, figsize=(20,10))
-			f.subplots_adjust(left=0.065, bottom=0.1, right=0.965, top=0.925, hspace=0.1, wspace=0.05)
-			plt.rcParams['xtick.labelsize'] = 24
-			plt.rc('ytick', labelsize = 24)
+			f.subplots_adjust(left=0.085, bottom=0.15, right=0.965, top=0.925, hspace=0.1, wspace=0.05)
 			red_blue_yellow_cyan_marker_size = 12
-			red_blue_yellow_cyan_marker_size_legend_box = 18
+			red_blue_yellow_cyan_marker_size_legend_box = 19
 			legend_box_names_font_size = 22
-			size_of_combination_name = 23
-			size_of_y_label = 30
+			size_of_combination_name = 35
+			size_of_y_label = 35
 
 			
 			ax[0].set_ylabel('Precision', fontsize = size_of_y_label)
 
-			import matplotlib.lines as mlines
-			blue_line = mlines.Line2D([], [], color='blue', marker='^', markersize = red_blue_yellow_cyan_marker_size_legend_box, label='data + prior')
-			yellow_line = mlines.Line2D([], [], color='yellow', marker='s', markersize = red_blue_yellow_cyan_marker_size_legend_box, label='prior')
-			red_line = mlines.Line2D([], [], color='red', marker='o', markersize = red_blue_yellow_cyan_marker_size_legend_box, label='data')
-			pink_line = mlines.Line2D([], [], color='cyan', marker='*', markersize = red_blue_yellow_cyan_marker_size_legend_box, label='MOG')
-			#handles, labels = ax[0].get_legend_handles_labels()
-			#ax[0].legend(handles, labels, fontsize = legend_box_names_font_size)
+		import matplotlib.lines as mlines
+		blue_line = mlines.Line2D([], [], color='blue', marker='^', markersize = red_blue_yellow_cyan_marker_size_legend_box, label='data+prior')#'NB')#
+		yellow_line = mlines.Line2D([], [], color='darkviolet', marker='s', markersize = red_blue_yellow_cyan_marker_size_legend_box, label='prior')
+		red_line = mlines.Line2D([], [], color='red', marker='o', markersize = red_blue_yellow_cyan_marker_size_legend_box, label='data')
+		pink_line = mlines.Line2D([], [], color='cyan', marker='*', markersize = red_blue_yellow_cyan_marker_size_legend_box, label='LVA data+prior')
+		green_line = mlines.Line2D([], [], color='green', marker="v", markersize = red_blue_yellow_cyan_marker_size_legend_box, label='LVA prior')
+		#handles, labels = ax[0].get_legend_handles_labels()
+		#ax[0].legend(handles, labels, fontsize = legend_box_names_font_size)
+
+
+
 
 
 		for index_filt_val, filter_value in enumerate(filter_values_):
 
-			if not(domain_atr): posterior_dist_true_unsplit, posterior_dist_false_unsplit = classifiers_clean.posterior_producer([0], [], total_posterior = False)
 
-			posterior_dist_true, posterior_dist_false = domain_filter((posterior_dist_true_unsplit, posterior_dist_false_unsplit), domain, invert_domain)
+			if "dist" in type_of_models: 
+				if not(domain_atr): posterior_dist_true_unsplit, posterior_dist_false_unsplit = posterior_MOG["positive_interactions"]["dist"], posterior_MOG["negative_interactions"]["dist"]#classifiers_clean.posterior_producer([0], [], total_posterior = False)
 
+				posterior_dist_true, posterior_dist_false = domain_filter((posterior_dist_true_unsplit, posterior_dist_false_unsplit), domain, invert_domain)
 
+			if "MOG_dist" in type_of_models: 
+				if not(domain_atr): posterior_dist_true_unsplit_MOG, posterior_dist_false_unsplit_MOG = posterior_MOG["positive_interactions"]["MOG_dist"], posterior_MOG["negative_interactions"]["MOG_dist"]
+
+				posterior_dist_true_MOG, posterior_dist_false_MOG = domain_filter((posterior_dist_true_unsplit_MOG, posterior_dist_false_unsplit_MOG), domain, invert_domain)
 			
 			#posterior_dist_true, posterior_dist_false = np.array(posterior_dist_true), np.array(posterior_dist_false)
 			#posterior_dist_true, posterior_dist_false = posterior_dist_true[posterior_dist_true <> 1.], posterior_dist_false[posterior_dist_false <> 1.]
 
-			for index_opt, option_ in enumerate(selected_combinations):
+			for index_opt, option_ in zip(range(len(selected_combinations)), selected_combinations):#[0:5]:#[1:3]
 
 					
 				comb = ",".join([dict_option_[el] for el in option_])
+				comb_MOG = "_".join([dict_option[el] for el in option_])
 
 
 				if option_ == combinations[-1]: comb = "All"
@@ -384,17 +396,24 @@ def execute(sensitivity_match_MAP, number_of_interacting_enhancers_, option_to_p
 				print comb
 
 				if domain_atr <> None:
-					number_of_interacting_enhancers = total_number_of_interacting_enhancers[domain_atr]
-					sensitivity_dist_correl = sensitivity_match_MAP["correl_dist"][domain_atr][",".join(np.array(option_, str))]
-					sensitivity_correl = sensitivity_match_MAP["correl"][domain_atr][",".join(np.array(option_, str))]
-					sensitivity_dist = sensitivity_match_MAP["dist"][domain_atr][",".join(np.array(option_, str))]
+					#number_of_interacting_enhancers = total_number_of_interacting_enhancers[domain_atr]
+					sensitivity_dist_correl = sensitivity_match_MAP["correl_dist"][domain_atr][comb_MOG]
+					sensitivity_correl = sensitivity_match_MAP["correl"][domain_atr][comb_MOG]
+					sensitivity_dist = sensitivity_match_MAP["dist"][domain_atr]#[",".join(np.array(option_, str))]
+					
+					if "MOG_dist" in type_of_models: sensitivity_dist_MOG = sensitivity_match_MAP["MOG_dist"][domain_atr]
+					if "MOG_correl_dist" in type_of_models: sensitivity_dist_correl_MOG = sensitivity_match_MAP["MOG_correl_dist"][domain_atr][comb_MOG]
+
+					# sensitivity_MOG
 
 				else:
-					number_of_interacting_enhancers = number_of_interacting_enhancers_
-					sensitivity_dist_correl = sensitivity_match_MAP["correl_dist"][",".join(np.array(option_, str))]
-					sensitivity_correl = sensitivity_match_MAP["correl"][",".join(np.array(option_, str))]
-					sensitivity_dist = sensitivity_match_MAP["dist"][",".join(np.array(option_, str))]
-
+					#number_of_interacting_enhancers = number_of_interacting_enhancers_
+					sensitivity_dist_correl = sensitivity_match_MAP["correl_dist"]["unsplit"][comb_MOG]
+					sensitivity_correl = sensitivity_match_MAP["correl"]["unsplit"][comb_MOG]
+					sensitivity_dist = sensitivity_match_MAP["dist"]["unsplit"]#[",".join(np.array(option_, str))]
+					
+					if "MOG_dist" in type_of_models: sensitivity_dist_MOG = sensitivity_match_MAP["MOG_dist"]["unsplit"]
+					if "MOG_correl_dist" in type_of_models: sensitivity_dist_correl_MOG = sensitivity_match_MAP["MOG_correl_dist"]["unsplit"][comb_MOG]
 
 				full_len = sum([len(classificator_elements[-1.][mode]["positive_interactions"]["distance"]["probabilities_of_being_positive_interactions"]["posterior_component_values"][chrom_]) for chrom_ in chroms_to_infer])
 				new_len = sum([len(classificator_elements[filter_value][mode]["positive_interactions"]["distance"]["probabilities_of_being_positive_interactions"]["posterior_component_values"][chrom_]) for chrom_ in chroms_to_infer])
@@ -409,72 +428,103 @@ def execute(sensitivity_match_MAP, number_of_interacting_enhancers_, option_to_p
 				percent_2 = percent_2_ * per
 				percent_3 = percent_3_ * per
 
-				if not(domain_atr): posterior_correl_dist_true_unsplit, posterior_correl_dist_false_unsplit = classifiers_clean.posterior_producer([0], option_, total_posterior = False)
 
-				posterior_correl_dist_true, posterior_correl_dist_false = domain_filter((posterior_correl_dist_true_unsplit, posterior_correl_dist_false_unsplit), domain, invert_domain)
+				
+				if not(domain_atr): posterior_correl_dist_true_unsplit[comb], posterior_correl_dist_false_unsplit[comb] = classifiers_clean.posterior_producer([0], option_, total_posterior = False)
 
-				if not(domain_atr): posterior_correl_true_unsplit, posterior_correl_false_unsplit = classifiers_clean.posterior_producer([], option_, total_posterior = False)
-
-				posterior_correl_true, posterior_correl_false = domain_filter((posterior_correl_true_unsplit, posterior_correl_false_unsplit), domain, invert_domain)
+				posterior_correl_dist_true, posterior_correl_dist_false = domain_filter((posterior_correl_dist_true_unsplit[comb], posterior_correl_dist_false_unsplit[comb]), domain, invert_domain)
 
 				length_of_positives_pro, length_of_negatives_pro = len(posterior_correl_dist_true), len(posterior_correl_dist_false) #domain adjusted
-				
+				#length_of_positives_pro, length_of_negatives_pro = len(posterior_correl_dist_true_unsplit), len(posterior_correl_dist_false_unsplit) #domain unadjusted
 
-				if config_variables.MoG_classificator:
+				if "correl" in type_of_models: 
+					if not(domain_atr): posterior_correl_true_unsplit[comb], posterior_correl_false_unsplit[comb] = classifiers_clean.posterior_producer([], option_, total_posterior = False)
 
-					if not(domain_atr): posterior_correl_dist_true_unsplit_MOG, posterior_correl_dist_false_unsplit_MOG = classifiers_clean.MOG_classifier(option_, total_posterior = False)
-
-					posterior_correl_dist_true_MOG, posterior_correl_dist_false_MOG = domain_filter((posterior_correl_dist_true_unsplit_MOG, posterior_correl_dist_false_unsplit_MOG), domain, invert_domain)
-
-				#posterior_correl_dist_true, posterior_correl_dist_false = np.array(posterior_correl_dist_true), np.array(posterior_correl_dist_false)
-				#posterior_correl_true, posterior_correl_false = np.array(posterior_correl_true), np.array(posterior_correl_false)
-
-				#posterior_correl_dist_true, posterior_correl_dist_false = posterior_correl_dist_true[posterior_correl_dist_true <> 1.], posterior_correl_dist_false[posterior_correl_dist_false <> 1.]
-
-				#posterior_correl_true, posterior_correl_false = posterior_correl_true[posterior_correl_true <> 1.], posterior_correl_false[posterior_correl_false <> 1.]
-				#print option_
+					posterior_correl_true, posterior_correl_false = domain_filter((posterior_correl_true_unsplit[comb], posterior_correl_false_unsplit[comb]), domain, invert_domain)
 
 
-				if give_indexes_for_thresholds: 
-					percent_1, percent_2, percent_3 = threshold_1_dist_correl[comb], threshold_2_dist_correl[comb], threshold_3_dist_correl[comb]
-
-				config_variables.dist_or_correl_attribute = "distance_correl"
-				True_positive_Rate_dist_correl_pro, False_positive_Rate_dist_correl_pro, precision_dist_correl_pro, index_100_dist_correl_pro, index_200_dist_correl_pro, index_300_dist_correl_pro, threshold_1_dist_correl_, threshold_2_dist_correl_, threshold_3_dist_correl_ = calculate_single_ROC_best_True_sensitivity(posterior_correl_dist_true, posterior_correl_dist_false, length_of_positives_pro, length_of_negatives_pro, percent_1, percent_2, percent_3, thresh = thresh, give_indexes_for_thresholds = give_indexes_for_thresholds)
-
-				if give_indexes_for_thresholds: 
-					percent_1, percent_2, percent_3 = threshold_1_dist[comb], threshold_2_dist[comb], threshold_3_dist[comb]
-				config_variables.dist_or_correl_attribute = "distance"
-				True_positive_Rate_dist_pro, False_positive_Rate_dist_pro, precision_dist_pro, index_100_dist_pro, index_200_dist_pro, index_300_dist_pro, threshold_1_dist_, threshold_2_dist_, threshold_3_dist_ = calculate_single_ROC_best_True_sensitivity(posterior_dist_true, posterior_dist_false, length_of_positives_pro, length_of_negatives_pro, percent_1, percent_2, percent_3, thresh = thresh, give_indexes_for_thresholds = give_indexes_for_thresholds)
-
-				if give_indexes_for_thresholds: 
-					percent_1, percent_2, percent_3 = threshold_1_correl[comb], threshold_2_correl[comb], threshold_3_correl[comb]
-				config_variables.dist_or_correl_attribute = "correl"
-				True_positive_Rate_correl_pro, False_positive_Rate_correl_pro, precision_correl_pro, index_100_correl_pro, index_200_correl_pro, index_300_correl_pro, threshold_1_correl_, threshold_2_correl_, threshold_3_correl_ = calculate_single_ROC_best_True_sensitivity(posterior_correl_true, posterior_correl_false, length_of_positives_pro, length_of_negatives_pro, percent_1, percent_2, percent_3, thresh = thresh, give_indexes_for_thresholds = give_indexes_for_thresholds)
+				if "MOG_correl_dist" in type_of_models: 
+					if not(domain_atr): posterior_correl_dist_true_unsplit_MOG[comb], posterior_correl_dist_false_unsplit_MOG[comb] = posterior_MOG["positive_interactions"]["MOG_correl_dist"][comb_MOG], posterior_MOG["negative_interactions"]["MOG_correl_dist"][comb_MOG]
+					posterior_correl_dist_true_MOG, posterior_correl_dist_false_MOG = domain_filter((posterior_correl_dist_true_unsplit_MOG[comb], posterior_correl_dist_false_unsplit_MOG[comb]), domain, invert_domain)
 
 
-				#MOG--------------------------
-				if config_variables.MoG_classificator:
+
+				if "correl_dist" in type_of_models: 
+					if give_indexes_for_thresholds: 
+						percent_1, percent_2, percent_3 = threshold_1_dist_correl[comb], threshold_2_dist_correl[comb], threshold_3_dist_correl[comb]
+
+					config_variables.dist_or_correl_attribute = "distance_correl"
+					True_positive_Rate_dist_correl_pro, False_positive_Rate_dist_correl_pro, precision_dist_correl_pro, index_100_dist_correl_pro, index_200_dist_correl_pro, index_300_dist_correl_pro, threshold_1_dist_correl_, threshold_2_dist_correl_, threshold_3_dist_correl_ = calculate_single_ROC_best_True_sensitivity(posterior_correl_dist_true, posterior_correl_dist_false, length_of_positives_pro, length_of_negatives_pro, percent_1, percent_2, percent_3, thresh = thresh, give_indexes_for_thresholds = give_indexes_for_thresholds)
+
+				if "dist" in type_of_models: 
+					if give_indexes_for_thresholds: 
+						percent_1, percent_2, percent_3 = threshold_1_dist[comb], threshold_2_dist[comb], threshold_3_dist[comb]
+					config_variables.dist_or_correl_attribute = "distance"
+					True_positive_Rate_dist_pro, False_positive_Rate_dist_pro, precision_dist_pro, index_100_dist_pro, index_200_dist_pro, index_300_dist_pro, threshold_1_dist_, threshold_2_dist_, threshold_3_dist_ = calculate_single_ROC_best_True_sensitivity(posterior_dist_true, posterior_dist_false, length_of_positives_pro, length_of_negatives_pro, percent_1, percent_2, percent_3, thresh = thresh, give_indexes_for_thresholds = give_indexes_for_thresholds)
+
+
+				if "correl" in type_of_models: 
+					if give_indexes_for_thresholds: 
+						percent_1, percent_2, percent_3 = threshold_1_correl[comb], threshold_2_correl[comb], threshold_3_correl[comb]
+					config_variables.dist_or_correl_attribute = "correl"
+					True_positive_Rate_correl_pro, False_positive_Rate_correl_pro, precision_correl_pro, index_100_correl_pro, index_200_correl_pro, index_300_correl_pro, threshold_1_correl_, threshold_2_correl_, threshold_3_correl_ = calculate_single_ROC_best_True_sensitivity(posterior_correl_true, posterior_correl_false, length_of_positives_pro, length_of_negatives_pro, percent_1, percent_2, percent_3, thresh = thresh, give_indexes_for_thresholds = give_indexes_for_thresholds)
+
+
+					#MOG--------------------------
+				if "MOG_correl_dist" in type_of_models: 
 					if give_indexes_for_thresholds: 
 						percent_1, percent_2, percent_3 = threshold_1_dist_correl_MOG[comb], threshold_2_dist_correl_MOG[comb], threshold_3_dist_correl_MOG[comb]
-				
+					config_variables.dist_or_correl_attribute = "MOG_correl_dist"
 					True_positive_Rate_dist_correl_pro_MOG, False_positive_Rate_dist_correl_pro_MOG, precision_dist_correl_pro_MOG, index_100_dist_correl_pro_MOG, index_200_dist_correl_pro_MOG, index_300_dist_correl_pro_MOG, threshold_1_dist_correl_MOG_, threshold_2_dist_correl_MOG_, threshold_3_dist_correl_MOG_ = calculate_single_ROC_best_True_sensitivity(posterior_correl_dist_true_MOG, posterior_correl_dist_false_MOG, length_of_positives_pro, length_of_negatives_pro, percent_1, percent_2, percent_3, thresh = thresh, give_indexes_for_thresholds = give_indexes_for_thresholds)
 
+				if "MOG_dist" in type_of_models: 
+					if give_indexes_for_thresholds: 
+						percent_1, percent_2, percent_3 = threshold_1_dist_MOG[comb], threshold_2_dist_MOG[comb], threshold_3_dist_MOG[comb]
+					config_variables.dist_or_correl_attribute = "MOG_dist"
+					True_positive_Rate_dist_pro_MOG, False_positive_Rate_dist_pro_MOG, precision_dist_pro_MOG, index_100_dist_pro_MOG, index_200_dist_pro_MOG, index_300_dist_pro_MOG, threshold_1_dist_MOG_, threshold_2_dist_MOG_, threshold_3_dist_MOG_ = calculate_single_ROC_best_True_sensitivity(posterior_dist_true_MOG, posterior_dist_false_MOG, length_of_positives_pro, length_of_negatives_pro, percent_1, percent_2, percent_3, thresh = thresh, give_indexes_for_thresholds = give_indexes_for_thresholds)
 
 				
-
-
 				if thresh: 
 
-					threshold_1_dist_correl[comb], threshold_2_dist_correl[comb], threshold_3_dist_correl[comb] = threshold_1_dist_correl_, threshold_2_dist_correl_, threshold_3_dist_correl_
-					threshold_1_dist[comb], threshold_2_dist[comb], threshold_3_dist[comb] = threshold_1_dist_, threshold_2_dist_, threshold_3_dist_
-					threshold_1_correl[comb], threshold_2_correl[comb], threshold_3_correl[comb] = threshold_1_correl_, threshold_2_correl_, threshold_3_correl_
-					if config_variables.MoG_classificator: threshold_1_dist_correl_MOG[comb], threshold_2_dist_correl_MOG[comb], threshold_3_dist_correl_MOG[comb] = threshold_1_dist_correl_MOG_, threshold_2_dist_correl_MOG_, threshold_3_dist_correl_MOG_
+					#"Data_set", "Mode", "Cutoff10%", "Cutoff20%", "Cutoff30%"
+
+					if "correl_dist" in type_of_models: 	
+						threshold_1_dist_correl[comb], threshold_2_dist_correl[comb], threshold_3_dist_correl[comb] = threshold_1_dist_correl_, threshold_2_dist_correl_, threshold_3_dist_correl_
+						 
+						to_save_2 = "\t".join(np.array([config_variables.comb, "correl_dist", threshold_1_dist_correl_, threshold_2_dist_correl_, threshold_3_dist_correl_]).astype("|S30"))
+						output_2.write(to_save_2 + "\n")
+
+					if "dist" in type_of_models:
+						threshold_1_dist[comb], threshold_2_dist[comb], threshold_3_dist[comb] = threshold_1_dist_, threshold_2_dist_, threshold_3_dist_
+
+						to_save_2 = "\t".join(np.array([config_variables.comb, "dist", threshold_1_dist_, threshold_2_dist_, threshold_3_dist_]).astype("|S30"))
+						output_2.write(to_save_2 + "\n")
+
+					if "correl" in type_of_models: 
+						threshold_1_correl[comb], threshold_2_correl[comb], threshold_3_correl[comb] = threshold_1_correl_, threshold_2_correl_, threshold_3_correl_
+						
+						to_save_2 = "\t".join(np.array([config_variables.comb, "correl", threshold_1_correl_, threshold_2_correl_, threshold_3_correl_]).astype("|S30"))
+						output_2.write(to_save_2 + "\n")
+
+					if "MOG_correl_dist" in type_of_models: 
+						threshold_1_dist_correl_MOG[comb], threshold_2_dist_correl_MOG[comb], threshold_3_dist_correl_MOG[comb] = threshold_1_dist_correl_MOG_, threshold_2_dist_correl_MOG_, threshold_3_dist_correl_MOG_
+						
+						to_save_2 = "\t".join(np.array([config_variables.comb, "MOG_correl_dist", threshold_1_dist_correl_MOG_, threshold_2_dist_correl_MOG_, threshold_3_dist_correl_MOG_]).astype("|S30"))
+						output_2.write(to_save_2 + "\n")
+
+					if "MOG_dist" in type_of_models:
+						threshold_1_dist_MOG[comb], threshold_2_dist_MOG[comb], threshold_3_dist_MOG[comb] = threshold_1_dist_MOG_, threshold_2_dist_MOG_, threshold_3_dist_MOG_
+						
+
+						to_save_2 = "\t".join(np.array([config_variables.comb, "MOG_dist", threshold_1_dist_MOG_, threshold_2_dist_MOG_, threshold_3_dist_MOG_]).astype("|S30"))
+						output_2.write(to_save_2 + "\n")
+
 
 				centres_of_ticks = np.arange(4) + 0.5
 				ind = centres_of_ticks
 
 				OX = [0.1,"0.2\n TPR ",0.3, "\nMAP"]
-				ax[index_opt].set_title(comb, fontsize = size_of_combination_name)
+				#ax[index_opt].set_title(comb, fontsize = size_of_combination_name)
 
 				ax[index_opt].vlines(3., 0, 1, colors=u'SlateGray', linestyles=u'dashed')
 				ax[index_opt].set_xlim([0., 4.])
@@ -484,39 +534,53 @@ def execute(sensitivity_match_MAP, number_of_interacting_enhancers_, option_to_p
 				ax[index_opt].set_xticklabels(np.array(OX, str))
 
 				ax[index_opt].set_title(comb, fontsize = size_of_combination_name)
-				
-				probabilities_dist_correl = np.r_[precision_dist_correl_pro[[index_100_dist_correl_pro, index_200_dist_correl_pro, index_300_dist_correl_pro]], sensitivity_dist_correl]
-				n = np.r_[length_of_positives_pro*True_positive_Rate_dist_correl_pro[[index_100_dist_correl_pro, index_200_dist_correl_pro, index_300_dist_correl_pro]] + False_positive_Rate_dist_correl_pro[[index_100_dist_correl_pro, index_200_dist_correl_pro, index_300_dist_correl_pro]]*length_of_negatives_pro, number_of_interacting_enhancers_]
-				yerr = (probabilities_dist_correl*(1-probabilities_dist_correl)/n)**0.5
-				ax[index_opt].errorbar(ind, probabilities_dist_correl, yerr= yerr, fmt='^', color="b", alpha=0.5, linewidth=3., markersize=red_blue_yellow_cyan_marker_size)
-				ax[index_opt].plot(ind, probabilities_dist_correl, alpha=1.0, color="b", marker= "^", linewidth=0.0, markersize=red_blue_yellow_cyan_marker_size, label = "data + distance")
 
-				probabilities_dist = np.r_[precision_dist_pro[[index_100_dist_pro, index_200_dist_pro, index_300_dist_pro]], sensitivity_dist]
-					#n = np.r_[np.array([True_positive_Rate_dist_pro[index_100_dist_pro], True_positive_Rate_dist_pro[index_200_dist_pro], True_positive_Rate_dist_pro[index_300_dist_pro]])*number_of_interacting_enhancers_, number_of_interacting_enhancers_]
-				n = np.r_[length_of_positives_pro*True_positive_Rate_dist_pro[[index_100_dist_pro, index_200_dist_pro, index_300_dist_pro]] + False_positive_Rate_dist_pro[[index_100_dist_pro, index_200_dist_pro, index_300_dist_pro]]*length_of_negatives_pro, number_of_interacting_enhancers_]
+				if "correl_dist" in type_of_models: 				
+					probabilities_dist_correl = np.r_[precision_dist_correl_pro[[index_100_dist_correl_pro, index_200_dist_correl_pro, index_300_dist_correl_pro]], sensitivity_dist_correl]
+					n = np.r_[length_of_positives_pro*True_positive_Rate_dist_correl_pro[[index_100_dist_correl_pro, index_200_dist_correl_pro, index_300_dist_correl_pro]] + False_positive_Rate_dist_correl_pro[[index_100_dist_correl_pro, index_200_dist_correl_pro, index_300_dist_correl_pro]]*length_of_negatives_pro, number_of_interacting_enhancers_]
+					yerr = (probabilities_dist_correl*(1-probabilities_dist_correl)/n)**0.5
+					ax[index_opt].errorbar(ind, probabilities_dist_correl, yerr= yerr, fmt='^', color="b", alpha=0.5, linewidth=3., markersize=red_blue_yellow_cyan_marker_size)
+					ax[index_opt].plot(ind, probabilities_dist_correl, alpha=1.0, color="b", marker= "^", linewidth=0.0, markersize=red_blue_yellow_cyan_marker_size, label = "NB")#data+distance
+				if "dist" in type_of_models:
+					probabilities_dist = np.r_[precision_dist_pro[[index_100_dist_pro, index_200_dist_pro, index_300_dist_pro]], sensitivity_dist]
+						#n = np.r_[np.array([True_positive_Rate_dist_pro[index_100_dist_pro], True_positive_Rate_dist_pro[index_200_dist_pro], True_positive_Rate_dist_pro[index_300_dist_pro]])*number_of_interacting_enhancers_, number_of_interacting_enhancers_]
+					n = np.r_[length_of_positives_pro*True_positive_Rate_dist_pro[[index_100_dist_pro, index_200_dist_pro, index_300_dist_pro]] + False_positive_Rate_dist_pro[[index_100_dist_pro, index_200_dist_pro, index_300_dist_pro]]*length_of_negatives_pro, number_of_interacting_enhancers_]
 
-				yerr = (probabilities_dist*(1-probabilities_dist)/n)**0.5
-				ax[index_opt].errorbar(ind, probabilities_dist, yerr = yerr, fmt='s', color="y", alpha=0.5, linewidth=3., markersize=red_blue_yellow_cyan_marker_size)
-				ax[index_opt].plot(ind, probabilities_dist, alpha=1.0, color="y", marker= "s", linewidth=0.0, markersize=red_blue_yellow_cyan_marker_size, label = "distance")
-
-				probabilities_correl = np.r_[precision_correl_pro[[index_100_correl_pro, index_200_correl_pro, index_300_correl_pro]], sensitivity_correl]
-					#n = np.r_[np.array([True_positive_Rate_correl_pro[index_100_correl_pro], True_positive_Rate_correl_pro[index_200_correl_pro], True_positive_Rate_correl_pro[index_300_correl_pro]])*number_of_interacting_enhancers_, number_of_interacting_enhancers_]
-				n = np.r_[length_of_positives_pro*True_positive_Rate_correl_pro[[index_100_correl_pro, index_200_correl_pro, index_300_correl_pro]] + False_positive_Rate_correl_pro[[index_100_correl_pro, index_200_correl_pro, index_300_correl_pro]]*length_of_negatives_pro, number_of_interacting_enhancers_]
-				yerr = (probabilities_correl*(1-probabilities_correl)/n)**0.5
-				ax[index_opt].errorbar(ind, probabilities_correl, yerr= yerr, fmt='o', color="red", alpha=0.5, linewidth=3., markersize=red_blue_yellow_cyan_marker_size)
-				ax[index_opt].plot(ind, probabilities_correl, alpha=1.0, color="red", marker= "o", linewidth=0.0, markersize=red_blue_yellow_cyan_marker_size, label = "data")
+					yerr = (probabilities_dist*(1-probabilities_dist)/n)**0.5
+					ax[index_opt].errorbar(ind, probabilities_dist, yerr = yerr, fmt='s', color="darkviolet", alpha=0.5, linewidth=3., markersize=red_blue_yellow_cyan_marker_size)
+					ax[index_opt].plot(ind, probabilities_dist, alpha=1.0, color="darkviolet", marker= "s", linewidth=0.0, markersize=red_blue_yellow_cyan_marker_size, label = "distance")
+				if "correl" in type_of_models: 
+					probabilities_correl = np.r_[precision_correl_pro[[index_100_correl_pro, index_200_correl_pro, index_300_correl_pro]], sensitivity_correl]
+						#n = np.r_[np.array([True_positive_Rate_correl_pro[index_100_correl_pro], True_positive_Rate_correl_pro[index_200_correl_pro], True_positive_Rate_correl_pro[index_300_correl_pro]])*number_of_interacting_enhancers_, number_of_interacting_enhancers_]
+					n = np.r_[length_of_positives_pro*True_positive_Rate_correl_pro[[index_100_correl_pro, index_200_correl_pro, index_300_correl_pro]] + False_positive_Rate_correl_pro[[index_100_correl_pro, index_200_correl_pro, index_300_correl_pro]]*length_of_negatives_pro, number_of_interacting_enhancers_]
+					yerr = (probabilities_correl*(1-probabilities_correl)/n)**0.5
+					ax[index_opt].errorbar(ind, probabilities_correl, yerr= yerr, fmt='o', color="red", alpha=0.5, linewidth=3., markersize=red_blue_yellow_cyan_marker_size)
+					ax[index_opt].plot(ind, probabilities_correl, alpha=1.0, color="red", marker= "o", linewidth=0.0, markersize=red_blue_yellow_cyan_marker_size, label = "data")
 
 					#-------------------------MOG
-				if config_variables.MoG_classificator:
-					probabilities_dist_correl_MOG = precision_dist_correl_pro_MOG[[index_100_dist_correl_pro_MOG, index_200_dist_correl_pro_MOG, index_300_dist_correl_pro_MOG]]#, sensitivity_dist_correl]
+				if "MOG_correl_dist" in type_of_models: 
+					probabilities_dist_correl_MOG = np.r_[precision_dist_correl_pro_MOG[[index_100_dist_correl_pro_MOG, index_200_dist_correl_pro_MOG, index_300_dist_correl_pro_MOG]], sensitivity_dist_correl_MOG]
 					#n = np.array([True_positive_Rate_dist_correl_pro_MOG[index_100_dist_correl_pro_MOG], True_positive_Rate_dist_correl_pro_MOG[index_200_dist_correl_pro_MOG], True_positive_Rate_dist_correl_pro_MOG[index_300_dist_correl_pro_MOG]])*number_of_interacting_enhancers_
-					n = np.r_[length_of_positives_pro*True_positive_Rate_dist_correl_pro_MOG[[index_100_dist_correl_pro_MOG, index_200_dist_correl_pro_MOG, index_300_dist_correl_pro_MOG]] + False_positive_Rate_dist_correl_pro_MOG[[index_100_dist_correl_pro_MOG, index_200_dist_correl_pro_MOG, index_300_dist_correl_pro_MOG]]*length_of_negatives_pro]#, number_of_interacting_enhancers_
+					n = np.r_[length_of_positives_pro*True_positive_Rate_dist_correl_pro_MOG[[index_100_dist_correl_pro_MOG, index_200_dist_correl_pro_MOG, index_300_dist_correl_pro_MOG]] + False_positive_Rate_dist_correl_pro_MOG[[index_100_dist_correl_pro_MOG, index_200_dist_correl_pro_MOG, index_300_dist_correl_pro_MOG]]*length_of_negatives_pro, number_of_interacting_enhancers_]
 					yerr = (probabilities_dist_correl_MOG*(1-probabilities_dist_correl_MOG)/n)**0.5
-					ax[index_opt].errorbar(ind[:-1], probabilities_dist_correl_MOG, yerr= yerr, fmt='*', color="cyan", alpha=0.5, linewidth=3., markersize=red_blue_yellow_cyan_marker_size)
-					ax[index_opt].plot(ind[:-1], probabilities_dist_correl_MOG, alpha=1.0, color="cyan", marker= "*", linewidth=0.0, markersize=red_blue_yellow_cyan_marker_size, label = "MOG")
+					ax[index_opt].errorbar(ind, probabilities_dist_correl_MOG, yerr= yerr, fmt='*', color="cyan", alpha=0.5, linewidth=3., markersize=red_blue_yellow_cyan_marker_size)
+					ax[index_opt].plot(ind, probabilities_dist_correl_MOG, alpha=1.0, color="cyan", marker= "*", linewidth=0.0, markersize=red_blue_yellow_cyan_marker_size, label = "LVA data+prior")
+
+				if "MOG_dist" in type_of_models:
+					probabilities_dist_MOG = np.r_[precision_dist_pro_MOG[[index_100_dist_pro_MOG, index_200_dist_pro_MOG, index_300_dist_pro_MOG]], sensitivity_dist_MOG]
+					#n = np.array([True_positive_Rate_dist_pro_MOG[index_100_dist_pro_MOG], True_positive_Rate_dist_pro_MOG[index_200_dist_pro_MOG], True_positive_Rate_dist_pro_MOG[index_300_dist_pro_MOG]])*number_of_interacting_enhancers_
+					n = np.r_[length_of_positives_pro*True_positive_Rate_dist_pro_MOG[[index_100_dist_pro_MOG, index_200_dist_pro_MOG, index_300_dist_pro_MOG]] + False_positive_Rate_dist_pro_MOG[[index_100_dist_pro_MOG, index_200_dist_pro_MOG, index_300_dist_pro_MOG]]*length_of_negatives_pro, number_of_interacting_enhancers_]
+					yerr = (probabilities_dist_MOG*(1-probabilities_dist_MOG)/n)**0.5
+					ax[index_opt].errorbar(ind, probabilities_dist_MOG, yerr= yerr, fmt="v", color="green", alpha=0.5, linewidth=3., markersize=red_blue_yellow_cyan_marker_size)
+					ax[index_opt].plot(ind, probabilities_dist_MOG, alpha=1.0, color="green", marker= "v", linewidth=0.0, markersize=red_blue_yellow_cyan_marker_size, label = "LVA prior")
+
+
+
+
+
 
 				handles, labels = ax[0].get_legend_handles_labels()
-				ax[0].legend(handles, labels, fontsize = legend_box_names_font_size)
+				ax[0].legend(handles, labels, fontsize = legend_box_names_font_size, numpoints=1, handletextpad = 0.0, borderpad=0.2, labelspacing=0.2)
 				
 
 
@@ -525,7 +589,8 @@ def execute(sensitivity_match_MAP, number_of_interacting_enhancers_, option_to_p
 
 
 			pdf.savefig()
-	if config_variables.FDR_mode: output.close()
+	if config_variables.FDR_mode: output.close(); 
+	output_2.close()
 	pdf.close()	
 	#plt.show()
 	plt.close("all")

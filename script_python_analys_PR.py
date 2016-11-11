@@ -85,14 +85,14 @@ def executor(selection_option, FDR_level):
 		ax.tick_params(right="off")
 		#ax.tick_params(left="off")
 		
+	colours = iter(["b", "g", "r"]*2)#iter(plt.rcParams['axes.color_cycle'])
 
-	fig = plt.figure()
-	ax = fig.add_subplot(111)
-	simpleaxis(ax)
+	def plotter(data_set):
 
-	colours = iter(plt.rcParams['axes.color_cycle'])
+		fig = plt.figure()
+		ax = fig.add_subplot(111)
+		simpleaxis(ax)
 
-	for data_set in np.array(["GRO", "RNA"])[[0]]:
 		for FDR in ("0,001", "0,05", "0,01"):
 			SEQ_genes = np.loadtxt(data_folder + "{0}seq_DE_{1}.csv.gz".format(data_set, FDR), dtype = str)
 			#------------distance
@@ -112,31 +112,35 @@ def executor(selection_option, FDR_level):
 
 			#print Percent_of_DE_genes
 
-	plt.rcParams['xtick.labelsize'] = 18
-	plt.rc('ytick', labelsize=18)	
-	#plt.rc('xtick', labelsize=20)	
-	plt.rcParams['figure.figsize'] = 15, 10 #figsize=(20,10)
+		plt.rcParams['xtick.labelsize'] = 18
+		plt.rc('ytick', labelsize=18)	
+		#plt.rc('xtick', labelsize=20)	
+		plt.rcParams['figure.figsize'] = 15, 10 #figsize=(20,10)
 
-	plt.xlabel('Recall(TPR)', fontsize=20)
-	plt.ylabel('Precision', fontsize=20)
-	#plt.title('1-prod(1-p_i) - distal vs proximal')
+		plt.xlabel('Recall(TPR)', fontsize=20)
+		plt.ylabel('Precision', fontsize=20)
+		#plt.title('1-prod(1-p_i) - distal vs proximal')
 
-	plt.legend()
+		plt.axis((0,1,0,1))
 
-	name_of_output_FDR_file = results_folder + 'GRO_seq_active_GENES_{0}_{1}_{2}_{3}_{4}_average_PolII'.format(FDR_level, ",".join([comb]), config_variables.one_sided_or_two_sided, config_variables.use_smooth_prior_for_estimation, config_variables.number_of_bins)
+		plt.legend()
 
-	name_of_output_FDR_file += "_{0}_{1}_{2}".format(config_variables.upstream, config_variables.downstream, config_variables.upstream_t_s)
+		name_of_output_FDR_file = results_folder + '{0}_seq_active_GENES_{1}_{2}_{3}_{4}_{5}_average_PolII'.format(data_set,FDR_level, ",".join([comb]), config_variables.one_sided_or_two_sided, config_variables.use_smooth_prior_for_estimation, config_variables.number_of_bins)
 
-	if config_variables.disentagled_features_validation: 
+		name_of_output_FDR_file += "_{0}_{1}_{2}".format(config_variables.upstream, config_variables.downstream, config_variables.upstream_t_s)
 
-		name_of_output_FDR_file += "_TSS" 
-	else:
-		name_of_output_FDR_file += "_GENE"
+		if config_variables.disentagled_features_validation: 
 
-	pdf = PdfPages(name_of_output_FDR_file + ".pdf")
+			name_of_output_FDR_file += "_TSS" 
+		else:
+			name_of_output_FDR_file += "_GENE"
 
-	pdf.savefig()
-	plt.close("all")
-	pdf.close(); #plt.show()
+		pdf = PdfPages(name_of_output_FDR_file + ".pdf")
+
+		pdf.savefig()
+		pdf.close(); plt.close("all");#plt.show()
+
+	for data_set in np.array(["GRO", "RNA"]): plotter(data_set)
+
 
 
