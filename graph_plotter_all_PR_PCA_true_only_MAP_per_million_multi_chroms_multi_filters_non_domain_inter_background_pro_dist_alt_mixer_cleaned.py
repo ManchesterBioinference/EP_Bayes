@@ -1,4 +1,4 @@
-def executor(PR_CURVES = "SELECTIVE", mode_of_code = "EVEN", mode_of_features_and_interactions = "FEATURES_AND_INTERACTIONS_TOGETHER", GENE_OR_PROMOTER_MODE = "GENE_MODE", redo_raw_CHIA_PET_interactions = True, mode_atr = ["FIRST_TS", "SECOND_TS"][1], plot_TF_enrichments_in_cluster = False, upstream = 300, downstream = 0, upstream_t_s = 300, downstream_t_s = 0, do_clustering = False, re_do_clustering = False, cluster_figure_selection = None, DB_version = False, calculate_number_of_within_domain_interactions = True, option_correl_select = [1], number_of_samples = 10000, kappa_0 = 1.0, mu_0 = 0.0, alpha_0 = 2.0, Beta_0 = 2.0, mode_of_sampler = "distance_MOG_empir_mu", burn_in = 0, csf_mode = False, mode_of_code_2 = "WITHOUT", chain_number = 1, continue_sampling = False, interacting_enhancers_only_MOG = False, number_of_samples_arr = [], burn_in_start = []):
+def executor(PR_CURVES = "SELECTIVE", mode_of_code = "EVEN", mode_of_features_and_interactions = "FEATURES_AND_INTERACTIONS_TOGETHER", GENE_OR_PROMOTER_MODE = "GENE_MODE", redo_raw_CHIA_PET_interactions = True, mode_atr = ["FIRST_TS", "SECOND_TS"][1], plot_TF_enrichments_in_cluster = False, upstream = 300, downstream = 0, upstream_t_s = 300, downstream_t_s = 0, do_clustering = False, re_do_clustering = False, cluster_figure_selection = "cluster_ER_enhancer", DB_version = False, calculate_number_of_within_domain_interactions = True, option_correl_select = [1], number_of_samples = 10000, kappa_0 = 1.0, mu_0 = 0.0, alpha_0 = 2.0, Beta_0 = 2.0, mode_of_sampler = "distance_MOG_empir_mu", burn_in = 0, csf_mode = False, mode_of_code_2 = "WITHOUT", chain_number = 1, continue_sampling = False, interacting_enhancers_only_MOG = False, number_of_samples_arr = [], burn_in_start = [], number_of_samples_dist = 2, burn_in_dist = 1, number_of_samples_correl = [2]*5, burn_in_correl = [1]*5, chain_number_dist = None, chain_number_correl = [1]*5):
 
 
 	import numpy as np
@@ -22,8 +22,8 @@ def executor(PR_CURVES = "SELECTIVE", mode_of_code = "EVEN", mode_of_features_an
 	copy_and_paste_mode = False
 	if copy_and_paste_mode:
 		#PR_CURVES = "SELECTIVE"
-		mode_of_code = ["ODD","EVEN", "FULL", "GAUSSIAN_SAMPLE", "MK_PAIRWISE"][1]
-		mode_of_code_2 = ["WITHOUT", "ADD_GAUSSIAN_VALIDATION"][1]
+		mode_of_code = ["ODD","EVEN", "FULL", "GAUSSIAN_SAMPLE", "MK_PAIRWISE", "CLUSTERING"][-1]
+		mode_of_code_2 = ["WITHOUT", "ADD_GAUSSIAN_VALIDATION"][0]
 		mode_of_features_and_interactions = "FEATURES_AND_INTERACTIONS_SEPERATE"
 		GENE_OR_PROMOTER_MODE = "GENE_MODE"
 		redo_raw_CHIA_PET_interactions = False
@@ -99,7 +99,7 @@ def executor(PR_CURVES = "SELECTIVE", mode_of_code = "EVEN", mode_of_features_an
 	#scripts:
 	chrom_names = np.array(map(lambda x: "chr{0}".format(x), np.r_[np.arange(1, 23).astype(dtype='S2'), ['X'], ['Y']]))
 
-	if mode_of_code == "FULL":
+	if mode_of_code == "FULL" or mode_of_code == "CLUSTERING":
 		chroms_in_prior = np.arange(0,23,1)#+1#np.arange(0,13,1)#np.arange(0,13,1)
 		chroms_to_infer = np.arange(0,23,1)#np.arange(0,23,2)#np.arange(0,13,1)#np.arange(0,23,2)#np.arange(0,13,1)
 		FDR_mode = False
@@ -352,7 +352,7 @@ def executor(PR_CURVES = "SELECTIVE", mode_of_code = "EVEN", mode_of_features_an
 
 
 
-	if do_clustering: 
+	if mode_of_code == "CLUSTERING":
 
 		correl_value_filter = False
 		distant_enh_only_log = False
@@ -384,7 +384,7 @@ def executor(PR_CURVES = "SELECTIVE", mode_of_code = "EVEN", mode_of_features_an
 
 			config_variables.merged_time_series_to_cluster = merged_time_series_to_cluster	
 			AP_clustering.AP_clustering(merged_time_series_to_cluster, number_of_clusters = 40)
-			config_variables.labels = np.loadtxt(merged_time_series_to_cluster + "_labels", dtype = str)
+			#config_variables.labels = np.loadtxt(merged_time_series_to_cluster + "_labels", dtype = str)
 
 		import os as os
 		cwd = os.getcwd()
@@ -406,306 +406,313 @@ def executor(PR_CURVES = "SELECTIVE", mode_of_code = "EVEN", mode_of_features_an
 
 		#if not(copy_and_paste_mode): return 0
 
-	if plot_TF_enrichments_in_cluster:
+		if plot_TF_enrichments_in_cluster:
 
 
-		all_analysis = [["common_region_peaks_extended_less_time_points_corrected_0_indexed_unfiltered_count_concat_PolII_ER_200", 0, 0, ["FIRST_TS", "SECOND_TS"][0], "ENHANCER"],
-						["common_region_peaks_extended_less_time_points_corrected_0_indexed_unfiltered_count_concat_PolII_ER_200", 0, 0, ["FIRST_TS", "SECOND_TS"][1], "ENHANCER"],
-						["common_region_peaks_extended_less_time_points_corrected_0_indexed_unfiltered_count_concat_ER_100_distant_only", 0, 0, ["FIRST_TS", "SECOND_TS"][0], "ENHANCER"],
-						["common_region_peaks_extended_less_time_points_corrected_0_indexed_unfiltered_count_concat_PolII_2012-03_PolII_30_cor_0.2_distant_only", 0, 0, ["FIRST_TS", "SECOND_TS"][0], "ENHANCER"],
-						["common_region_peaks_extended_less_time_points_corrected_0_indexed_unfiltered_count_concat_PolII_2012-03_PolII_30_cor_0.2_distant_only", 0, 0, ["FIRST_TS", "SECOND_TS"][1], "ENHANCER"],
-						["Homo_sapiens.GRCh37.75.gtf_filtered_gene_joint_2_cleaned_chr_sorted_sorted_ordered_0_indexed_300_unfiltered_count_concat_ER_100", 1000, 1000, ["FIRST_TS", "SECOND_TS"][0], "TSS"],
-						["Homo_sapiens.GRCh37.75.gtf_filtered_gene_joint_2_cleaned_chr_sorted_sorted_ordered_0_indexed_300_unfiltered_count_concat_PolII_2012-03_PolII_30_cor_0.2", 1000, 1000, ["FIRST_TS", "SECOND_TS"][0], "TSS"],
-						["Homo_sapiens.GRCh37.75.gtf_filtered_gene_joint_2_cleaned_chr_sorted_sorted_ordered_0_indexed_300_unfiltered_count_concat_PolII_2012-03_PolII_30_cor_0.2", 1000, 1000, ["FIRST_TS", "SECOND_TS"][1], "TSS"],
-						["Homo_sapiens.GRCh37.75.gtf_filtered_gene_joint_2_cleaned_chr_sorted_sorted_ordered_0_indexed_300_unfiltered_count_concat_ER_100", 10000, 10000, ["FIRST_TS", "SECOND_TS"][0], "TSS"],
-						["Homo_sapiens.GRCh37.75.gtf_filtered_gene_joint_2_cleaned_chr_sorted_sorted_ordered_0_indexed_300_unfiltered_count_concat_PolII_2012-03_PolII_30_cor_0.2", 10000, 10000, ["FIRST_TS", "SECOND_TS"][0], "TSS"],
-						["Homo_sapiens.GRCh37.75.gtf_filtered_gene_joint_2_cleaned_chr_sorted_sorted_ordered_0_indexed_300_unfiltered_count_concat_PolII_2012-03_PolII_30_cor_0.2", 10000, 10000, ["FIRST_TS", "SECOND_TS"][1], "TSS"],
-						["Homo_sapiens.GRCh37.75.gtf_filtered_gene_joint_2_cleaned_chr_sorted_sorted_ordered_0_indexed_300_unfiltered_count_concat_ER_100", 300, 0, ["FIRST_TS", "SECOND_TS"][0], "GENE"],
-						["Homo_sapiens.GRCh37.75.gtf_filtered_gene_joint_2_cleaned_chr_sorted_sorted_ordered_0_indexed_300_unfiltered_count_concat_PolII_2012-03_PolII_30_cor_0.2", 300, 0, ["FIRST_TS", "SECOND_TS"][0], "GENE"],
-						["Homo_sapiens.GRCh37.75.gtf_filtered_gene_joint_2_cleaned_chr_sorted_sorted_ordered_0_indexed_300_unfiltered_count_concat_PolII_2012-03_PolII_30_cor_0.2", 300, 0, ["FIRST_TS", "SECOND_TS"][1], "GENE"]]
+			all_analysis = [["common_region_peaks_extended_less_time_points_corrected_0_indexed_unfiltered_count_concat_PolII_ER_200", 0, 0, ["FIRST_TS", "SECOND_TS"][0], "ENHANCER"],
+							["common_region_peaks_extended_less_time_points_corrected_0_indexed_unfiltered_count_concat_PolII_ER_200", 0, 0, ["FIRST_TS", "SECOND_TS"][1], "ENHANCER"],
+							["common_region_peaks_extended_less_time_points_corrected_0_indexed_unfiltered_count_concat_ER_100_distant_only", 0, 0, ["FIRST_TS", "SECOND_TS"][0], "ENHANCER"],
+							["common_region_peaks_extended_less_time_points_corrected_0_indexed_unfiltered_count_concat_PolII_2012-03_PolII_30_cor_0.2_distant_only", 0, 0, ["FIRST_TS", "SECOND_TS"][0], "ENHANCER"],
+							["common_region_peaks_extended_less_time_points_corrected_0_indexed_unfiltered_count_concat_PolII_2012-03_PolII_30_cor_0.2_distant_only", 0, 0, ["FIRST_TS", "SECOND_TS"][1], "ENHANCER"],
+							["Homo_sapiens.GRCh37.75.gtf_filtered_gene_joint_2_cleaned_chr_sorted_sorted_ordered_0_indexed_300_unfiltered_count_concat_ER_100", 1000, 1000, ["FIRST_TS", "SECOND_TS"][0], "TSS"],
+							["Homo_sapiens.GRCh37.75.gtf_filtered_gene_joint_2_cleaned_chr_sorted_sorted_ordered_0_indexed_300_unfiltered_count_concat_PolII_2012-03_PolII_30_cor_0.2", 1000, 1000, ["FIRST_TS", "SECOND_TS"][0], "TSS"],
+							["Homo_sapiens.GRCh37.75.gtf_filtered_gene_joint_2_cleaned_chr_sorted_sorted_ordered_0_indexed_300_unfiltered_count_concat_PolII_2012-03_PolII_30_cor_0.2", 1000, 1000, ["FIRST_TS", "SECOND_TS"][1], "TSS"],
+							["Homo_sapiens.GRCh37.75.gtf_filtered_gene_joint_2_cleaned_chr_sorted_sorted_ordered_0_indexed_300_unfiltered_count_concat_ER_100", 10000, 10000, ["FIRST_TS", "SECOND_TS"][0], "TSS"],
+							["Homo_sapiens.GRCh37.75.gtf_filtered_gene_joint_2_cleaned_chr_sorted_sorted_ordered_0_indexed_300_unfiltered_count_concat_PolII_2012-03_PolII_30_cor_0.2", 10000, 10000, ["FIRST_TS", "SECOND_TS"][0], "TSS"],
+							["Homo_sapiens.GRCh37.75.gtf_filtered_gene_joint_2_cleaned_chr_sorted_sorted_ordered_0_indexed_300_unfiltered_count_concat_PolII_2012-03_PolII_30_cor_0.2", 10000, 10000, ["FIRST_TS", "SECOND_TS"][1], "TSS"],
+							["Homo_sapiens.GRCh37.75.gtf_filtered_gene_joint_2_cleaned_chr_sorted_sorted_ordered_0_indexed_300_unfiltered_count_concat_ER_100", 300, 0, ["FIRST_TS", "SECOND_TS"][0], "GENE"],
+							["Homo_sapiens.GRCh37.75.gtf_filtered_gene_joint_2_cleaned_chr_sorted_sorted_ordered_0_indexed_300_unfiltered_count_concat_PolII_2012-03_PolII_30_cor_0.2", 300, 0, ["FIRST_TS", "SECOND_TS"][0], "GENE"],
+							["Homo_sapiens.GRCh37.75.gtf_filtered_gene_joint_2_cleaned_chr_sorted_sorted_ordered_0_indexed_300_unfiltered_count_concat_PolII_2012-03_PolII_30_cor_0.2", 300, 0, ["FIRST_TS", "SECOND_TS"][1], "GENE"]]
 
 
-		import overlapper_hg19_clean
+			import overlapper_hg19_clean
 
-		#mode_of_data_sets, sorted_mode = ["Ciiras", "Others_from_cistrom_finder"][1], ["amplitude_sorted", "size_sorted"][0]
+			#mode_of_data_sets, sorted_mode = ["Ciiras", "Others_from_cistrom_finder"][1], ["amplitude_sorted", "size_sorted"][0]
 
-		for merged_time_series_to_cluster, upstream_TSS, downstream_TSS, mode_atr, mode_atr2 in all_analysis:
-			for mode_of_data_sets in ["Ciiras", "Others_from_cistrom_finder"]:
-				if mode_of_data_sets == "Others_from_cistrom_finder": 
-					if mode_atr2 == "ENHANCER":
-						dont_plot = ["ESR1", "ESR2", "RAD21"]
-					else: 
-						dont_plot = ["ESR2", "RAD21"]
-				else: dont_plot = []
-				for sorted_mode in ["amplitude_sorted", "size_sorted"]:
+			for merged_time_series_to_cluster, upstream_TSS, downstream_TSS, mode_atr, mode_atr2 in all_analysis:
+				for mode_of_data_sets in ["Ciiras", "Others_from_cistrom_finder"]:
+					if mode_of_data_sets == "Others_from_cistrom_finder": 
+						if mode_atr2 == "ENHANCER":
+							dont_plot = ["ESR1", "ESR2", "RAD21"]
+						else: 
+							dont_plot = ["ESR2", "RAD21"]
+					else: dont_plot = []
+					for sorted_mode in ["amplitude_sorted", "size_sorted"]:
 
-					overlapper_hg19_clean.executor(merged_time_series_to_cluster, upstream_TSS = upstream_TSS, downstream_TSS = downstream_TSS, diff_bind_version = DB_version, mode_atr = mode_atr, mode_atr2 = mode_atr2, mode_of_data_sets = mode_of_data_sets, sorted_mode = sorted_mode, dont_plot = dont_plot) # mode attribute specifies whether it should use ER mean or Pol2 mean of a cluster to assess raising or falling tendencies.
-		#if not(copy_and_paste_mode): return 0
-
-	import generator_executor
-	f_name = generator_executor.interactions_producer_filter(generator_mode, domain, 2, TSS_or_intra_genic_for_domain_filter, "GENE_MODE") #in order to get path 2 interactions change to 3
-
-	config_variables.dict_chrom_pro_survived = dict_chrom_pro_survived
-	config_variables.dict_chrom_pro_not_survived = dict_chrom_pro_not_survived
-	config_variables.f_name = f_name
-	config_variables.filtered_promoters = filtered_promoters
-	config_variables.filtered_enhancers = filtered_enhancers
-	config_variables.dict_chrom_enh_survived = dict_chrom_enh_survived
-	config_variables.dict_chrom_enh_not_survived = dict_chrom_enh_not_survived
-
-	import prepare_interactions_clean
-
-	alternative_classificator_outside_enhancers = True # had something to do with enhancers outside domains - it's for MAP, enhancers which are interacting within domain and outside. Althought it's a bit ambigious for enhancers which may have one link inside domain and one outside
-	if alternative_classificator_outside_enhancers:
-		f_name_2 = generator_executor.interactions_producer_filter(generator_mode, True, 2, TSS_or_intra_genic_for_domain_filter, "GENE_MODE")
-		chr_interactions_dict_pro_enh, chr_interactions_dict_enh_enh, dict_total_enh, dict_total_pro = prepare_interactions_clean.filter_true_interactions_of_promoters_and_enhancers_which_didnt_survive_filtering(f_name_2)
-		from  prepare_interactions_clean import un_string
-		chrom_interacting_enhancers_pro = {}	
-		for chrom__ in chrom_names: chrom_interacting_enhancers_pro[chrom__] = np.unique(un_string(chr_interactions_dict_pro_enh[chrom__])[:,1])
-		config_variables.chrom_interacting_enhancers_pro = chrom_interacting_enhancers_pro
-
-	chr_interactions_dict_pro_enh, chr_interactions_dict_enh_enh, dict_total_enh, dict_total_pro = prepare_interactions_clean.filter_true_interactions_of_promoters_and_enhancers_which_didnt_survive_filtering(f_name)
-
-
-	if disentagled_features_validation: #That TSS_MODE can be still buggy to some extend. Check that later if you need to
-		f_name_TSS = generator_executor.interactions_producer_filter(generator_mode, domain, 2, TSS_or_intra_genic_for_domain_filter, "TSS_MODE")
-		config_variables.chr_interactions_dict_pro_enh_TSS, config_variables.chr_interactions_dict_enh_enh_TSS, config_variables.dict_total_enh_TSS, config_variables.dict_total_pro_TSS = prepare_interactions_clean.filter_true_interactions_of_promoters_and_enhancers_which_didnt_survive_filtering(f_name_TSS)
-
-	config_variables.dict_total_enh = dict_total_enh
-	config_variables.dict_total_pro = dict_total_pro
-	config_variables.chr_interactions_dict_pro_enh = chr_interactions_dict_pro_enh
-	config_variables.chr_interactions_dict_enh_enh = chr_interactions_dict_enh_enh
-
-	import chrom_specific_negative_interactions as negative_interactions
-
-	config_variables.negative_interactions = negative_interactions
-
-	import prior_producer
-	import classificator_clean
-	import prepare_upper_and_lower_bounds_for_priors as prior_bounds
-	import prior_histograms_cl
-	import allocator
-	import plot_histograms_figures
-
-	if Sample_MoG_classificator:
-		config_variables.interacting_enhancers_only = False
-		reload(negative_interactions)
-		config_variables.negative_interactions = negative_interactions
-
-		config_variables.alternative_classificator_outside_enhancers = False
-		prior_elements = prior_producer.prior_producer()
-		config_variables.alternative_classificator_outside_enhancers = False#True
-		infered_elements = classificator_clean.infered_elements_filler()
-
-		low_dist, up_dist = prior_bounds.prepare_upper_and_lower_bounds_for_priors(prior_elements, infered_elements)
-
-		config_variables.interacting_enhancers_only = True	
-		reload(negative_interactions)
-		config_variables.negative_interactions = negative_interactions
-
-		config_variables.alternative_classificator_outside_enhancers = False
-		prior_elements = prior_producer.prior_producer()
-		config_variables.alternative_classificator_outside_enhancers = False#True
-		infered_elements = classificator_clean.infered_elements_filler()
+						overlapper_hg19_clean.executor(merged_time_series_to_cluster, upstream_TSS = upstream_TSS, downstream_TSS = downstream_TSS, diff_bind_version = DB_version, mode_atr = mode_atr, mode_atr2 = mode_atr2, mode_of_data_sets = mode_of_data_sets, sorted_mode = sorted_mode, dont_plot = dont_plot) # mode attribute specifies whether it should use ER mean or Pol2 mean of a cluster to assess raising or falling tendencies.
+			#if not(copy_and_paste_mode): return 0
 
 	else:
-		config_variables.alternative_classificator_outside_enhancers = False
-		prior_elements = prior_producer.prior_producer()
-		config_variables.alternative_classificator_outside_enhancers = False#True
-		infered_elements = classificator_clean.infered_elements_filler()
 
-		low_dist, up_dist = prior_bounds.prepare_upper_and_lower_bounds_for_priors(prior_elements, infered_elements)
+		import generator_executor
+		f_name = generator_executor.interactions_producer_filter(generator_mode, domain, 2, TSS_or_intra_genic_for_domain_filter, "GENE_MODE") #in order to get path 2 interactions change to 3
 
-	prior_elements = prior_histograms_cl.prior_bins_prob_and_plotter(prior_elements, low_dist, up_dist, use_smooth_prior_for_estimation, plot_atr, plot_atr_kernel, Sample_MoG_classificator = False)
-	if not(csf_mode): plot_histograms_figures.execute(prior_elements, plot_atr, plot_atr_kernel)
+		config_variables.dict_chrom_pro_survived = dict_chrom_pro_survived
+		config_variables.dict_chrom_pro_not_survived = dict_chrom_pro_not_survived
+		config_variables.f_name = f_name
+		config_variables.filtered_promoters = filtered_promoters
+		config_variables.filtered_enhancers = filtered_enhancers
+		config_variables.dict_chrom_enh_survived = dict_chrom_enh_survived
+		config_variables.dict_chrom_enh_not_survived = dict_chrom_enh_not_survived
 
-	infered_elements = allocator.allocator(infered_elements, prior_elements)
+		import prepare_interactions_clean
 
-	#for mode in modes:
-	#	for filter_value in filter_values:
+		alternative_classificator_outside_enhancers = True # had something to do with enhancers outside domains - it's for MAP, enhancers which are interacting within domain and outside. Althought it's a bit ambigious for enhancers which may have one link inside domain and one outside
+		if alternative_classificator_outside_enhancers:
+			f_name_2 = generator_executor.interactions_producer_filter(generator_mode, True, 2, TSS_or_intra_genic_for_domain_filter, "GENE_MODE")
+			chr_interactions_dict_pro_enh, chr_interactions_dict_enh_enh, dict_total_enh, dict_total_pro = prepare_interactions_clean.filter_true_interactions_of_promoters_and_enhancers_which_didnt_survive_filtering(f_name_2)
+			from  prepare_interactions_clean import un_string
+			chrom_interacting_enhancers_pro = {}	
+			for chrom__ in chrom_names: chrom_interacting_enhancers_pro[chrom__] = np.unique(un_string(chr_interactions_dict_pro_enh[chrom__])[:,1])
+			config_variables.chrom_interacting_enhancers_pro = chrom_interacting_enhancers_pro
+
+		chr_interactions_dict_pro_enh, chr_interactions_dict_enh_enh, dict_total_enh, dict_total_pro = prepare_interactions_clean.filter_true_interactions_of_promoters_and_enhancers_which_didnt_survive_filtering(f_name)
 
 
-	for classification_of_interactions in ["positive_interactions", "negative_interactions"]:
-		for attribute_of_interaction in ["distance", "correlation"]:
-			for probability_of_being_positive_or_negative in ["probabilities_of_being_positive_interactions", "probabilities_of_being_negative_interactions"]:
-				if attribute_of_interaction == "correlation":
-					for data_set_name in dataset_names_option:
+		if disentagled_features_validation: #That TSS_MODE can be still buggy to some extend. Check that later if you need to
+			f_name_TSS = generator_executor.interactions_producer_filter(generator_mode, domain, 2, TSS_or_intra_genic_for_domain_filter, "TSS_MODE")
+			config_variables.chr_interactions_dict_pro_enh_TSS, config_variables.chr_interactions_dict_enh_enh_TSS, config_variables.dict_total_enh_TSS, config_variables.dict_total_pro_TSS = prepare_interactions_clean.filter_true_interactions_of_promoters_and_enhancers_which_didnt_survive_filtering(f_name_TSS)
+
+		config_variables.dict_total_enh = dict_total_enh
+		config_variables.dict_total_pro = dict_total_pro
+		config_variables.chr_interactions_dict_pro_enh = chr_interactions_dict_pro_enh
+		config_variables.chr_interactions_dict_enh_enh = chr_interactions_dict_enh_enh
+
+		import chrom_specific_negative_interactions as negative_interactions
+
+		config_variables.negative_interactions = negative_interactions
+
+		import prior_producer
+		import classificator_clean
+		import prepare_upper_and_lower_bounds_for_priors as prior_bounds
+		import prior_histograms_cl
+		import allocator
+		import plot_histograms_figures
+
+		if Sample_MoG_classificator:
+			config_variables.interacting_enhancers_only = False
+			reload(negative_interactions)
+			config_variables.negative_interactions = negative_interactions
+
+			config_variables.alternative_classificator_outside_enhancers = False
+			prior_elements = prior_producer.prior_producer()
+			config_variables.alternative_classificator_outside_enhancers = False#True
+			infered_elements = classificator_clean.infered_elements_filler()
+
+			low_dist, up_dist = prior_bounds.prepare_upper_and_lower_bounds_for_priors(prior_elements, infered_elements)
+
+			config_variables.interacting_enhancers_only = True	
+			reload(negative_interactions)
+			config_variables.negative_interactions = negative_interactions
+
+			config_variables.alternative_classificator_outside_enhancers = False
+			prior_elements = prior_producer.prior_producer()
+			config_variables.alternative_classificator_outside_enhancers = False#True
+			infered_elements = classificator_clean.infered_elements_filler()
+
+		else:
+			config_variables.alternative_classificator_outside_enhancers = False
+			prior_elements = prior_producer.prior_producer()
+			config_variables.alternative_classificator_outside_enhancers = False#True
+			infered_elements = classificator_clean.infered_elements_filler()
+			low_dist, up_dist = prior_bounds.prepare_upper_and_lower_bounds_for_priors(prior_elements, infered_elements)
+
+			if LDA:
+				import LDA_analysis as LDA
+				LDA.execute(prior_elements, infered_elements)
+
+
+
+		prior_elements = prior_histograms_cl.prior_bins_prob_and_plotter(prior_elements, low_dist, up_dist, use_smooth_prior_for_estimation, plot_atr, plot_atr_kernel, Sample_MoG_classificator = False)
+		if not(csf_mode): plot_histograms_figures.execute(prior_elements, plot_atr, plot_atr_kernel)
+
+		infered_elements = allocator.allocator(infered_elements, prior_elements)
+
+		#for mode in modes:
+		#	for filter_value in filter_values:
+
+
+		for classification_of_interactions in ["positive_interactions", "negative_interactions"]:
+			for attribute_of_interaction in ["distance", "correlation"]:
+				for probability_of_being_positive_or_negative in ["probabilities_of_being_positive_interactions", "probabilities_of_being_negative_interactions"]:
+					if attribute_of_interaction == "correlation":
+						for data_set_name in dataset_names_option:
+							for chrom_ in chroms_to_infer:
+								update = infered_elements[mode][classification_of_interactions][attribute_of_interaction][data_set_name][probability_of_being_positive_or_negative][chrom_]
+								classificator_elements[filter_value][mode][classification_of_interactions][attribute_of_interaction][probability_of_being_positive_or_negative][data_set_name]["posterior_component_values"][chrom_] = update
+
+					elif attribute_of_interaction == "distance":
 						for chrom_ in chroms_to_infer:
-							update = infered_elements[mode][classification_of_interactions][attribute_of_interaction][data_set_name][probability_of_being_positive_or_negative][chrom_]
-							classificator_elements[filter_value][mode][classification_of_interactions][attribute_of_interaction][probability_of_being_positive_or_negative][data_set_name]["posterior_component_values"][chrom_] = update
-
-				elif attribute_of_interaction == "distance":
-					for chrom_ in chroms_to_infer:
-						update = infered_elements[mode][classification_of_interactions][attribute_of_interaction][probability_of_being_positive_or_negative][chrom_]
-						classificator_elements[filter_value][mode][classification_of_interactions][attribute_of_interaction][probability_of_being_positive_or_negative]["posterior_component_values"][chrom_] = update
+							update = infered_elements[mode][classification_of_interactions][attribute_of_interaction][probability_of_being_positive_or_negative][chrom_]
+							classificator_elements[filter_value][mode][classification_of_interactions][attribute_of_interaction][probability_of_being_positive_or_negative]["posterior_component_values"][chrom_] = update
 
 
 
-	config_variables.classificator_elements = classificator_elements
-	import classifiers_clean
-	config_variables.classifiers_clean = classifiers_clean
+		config_variables.classificator_elements = classificator_elements
+		import classifiers_clean
+		config_variables.classifiers_clean = classifiers_clean
 
 
-	if mode_of_code == "GAUSSIAN_SAMPLE":
+		if mode_of_code == "GAUSSIAN_SAMPLE":
 
-		print "Sample_MoG_classificator"
-		from multiprocessing import Pool
-		import Gaussian_probs	
-		prior_elements[mode]["MOG_distance"]["prior_frequencies"], prior_elements[mode]["MOG_distance"]["prior_bins"] = Gaussian_probs.executor(prior_elements, low_dist, up_dist)
-
-		config_variables.probabilities_of_a_bin = prior_elements[mode]["positive_interactions"]["distance"]["prior_frequencies"]/prior_elements[mode]["MOG_distance"]["prior_frequencies"] #prior_elements[mode]["positive_interactions"]["distance"]["prior_frequencies"]/(prior_elements[mode]["negative_interactions"]["distance"]["prior_frequencies"])
-		config_variables.adequate_histogram_bins = prior_elements[mode]["MOG_distance"]["prior_bins"] #prior_elements[mode]["positive_interactions"]["distance"]["prior_bins"] it's the same but just in case
-
-		#prior_elements[mode]["positive_interactions"]["distance"]["prior_bins"]
-
-
-		config_variables.test_prior = False
-		import finite_MOG_object_orientated_1d_times_n_case_log_calc_prob_visited_float64_distance_low_distances_active_promoters_clean as MOG
-
-		#def func_star(args): return MOG.executor(*args)
-
-		p = Pool(5)
-
-		#option_correl_select = [1]	
-		arguments = [(mode_of_sampler, number_of_samples, option_correl__, chrom_, chain_number, continue_sampling) for chrom_ in chroms_to_infer for option_correl__ in selected_combinations if option_correl__ == option_correl_select]
-		#arguments = arguments[-6:]
-		#bla = []
-		#for el in arguments:bla += MOG.executor(el)
-		
-		p.map(MOG.executor, arguments)
-
-		posterior_ = {}
-		import classifiers_clean	
-
-		if mode_of_sampler == "distance_prior":
-			posterior_["positive_interactions"], posterior_["negative_interactions"] = classifiers_clean.MOG_classifier(mode_of_sampler, number_of_samples = number_of_samples, burn_in = burn_in, pairwise_number_in_pack = 150/2)
-		else:
-			posterior_["positive_interactions"], posterior_["negative_interactions"] = {}, {}
-			comb = "_".join([dict_option[el] for el in option_correl_select])
-			posterior_["positive_interactions"][comb], posterior_["negative_interactions"][comb] = classifiers_clean.MOG_classifier(mode_of_sampler, comb = comb, kappa_0 = kappa_0, mu_0 = mu_0 , alpha_0 = alpha_0, Beta_0 = Beta_0, number_of_samples = number_of_samples, burn_in = burn_in, chain = chain_number)
-
-
-
-		if config_variables.test_prior:
-			import Gaussian_probs
+			print "Sample_MoG_classificator"
+			from multiprocessing import Pool
+			import Gaussian_probs	
 			prior_elements[mode]["MOG_distance"]["prior_frequencies"], prior_elements[mode]["MOG_distance"]["prior_bins"] = Gaussian_probs.executor(prior_elements, low_dist, up_dist)
-			config_variables.probabilities_of_a_bin = prior_elements[mode]["positive_interactions"]["distance"]["prior_frequencies"]/prior_elements[mode]["MOG_distance"]["prior_frequencies"]#prior_elements[mode]["positive_interactions"]["distance"]["prior_frequencies"]/(prior_elements[mode]["negative_interactions"]["distance"]["prior_frequencies"])# + prior_elements[mode]["positive_interactions"]["distance"]["prior_frequencies"])
-			from prepare_interactions_clean import un_string
 
-			def inter_enhancer(chrom):
-				negative_interactions = config_variables.negative_interactions
-				indexes_p, indexes_e, total_p, total_e = negative_interactions.initialise_variables(chrom)[2:]
+			config_variables.probabilities_of_a_bin = prior_elements[mode]["positive_interactions"]["distance"]["prior_frequencies"]/prior_elements[mode]["MOG_distance"]["prior_frequencies"] #prior_elements[mode]["positive_interactions"]["distance"]["prior_frequencies"]/(prior_elements[mode]["negative_interactions"]["distance"]["prior_frequencies"])
+			config_variables.adequate_histogram_bins = prior_elements[mode]["MOG_distance"]["prior_bins"] #prior_elements[mode]["positive_interactions"]["distance"]["prior_bins"] it's the same but just in case
 
-				if config_variables.disentagled_features_validation: 
-					chr_interactions_pro_enh = config_variables.chr_interactions_dict_pro_enh_TSS[chrom]
-				else:
-					chr_interactions_pro_enh = config_variables.chr_interactions_dict_pro_enh[chrom]
+			#prior_elements[mode]["positive_interactions"]["distance"]["prior_bins"]
 
-				true_inter_pro = un_string(chr_interactions_pro_enh[:, :2]).astype(int)
 
-				i_s_t, j_s_t = true_inter_pro[:,0], true_inter_pro[:,1]
-				interacting_enhancers = np.unique(j_s_t)-total_e
-				return len(interacting_enhancers)
+			config_variables.test_prior = False
+			import finite_MOG_object_orientated_1d_times_n_case_log_calc_prob_visited_float64_distance_low_distances_active_promoters_clean as MOG
+
+			#def func_star(args): return MOG.executor(*args)
+
+			p = Pool(5)
+
+			#option_correl_select = [1]	
+			arguments = [(mode_of_sampler, number_of_samples, option_correl__, chrom_, chain_number, continue_sampling) for chrom_ in chroms_to_infer for option_correl__ in selected_combinations if option_correl__ == option_correl_select]
+			#arguments = arguments[-6:]
+			#bla = []
+			#for el in arguments:bla += MOG.executor(el)
 		
-			arguments = [(mode_of_sampler, inter_enhancer(chrom_), option_correl__, chrom_, chain_number, continue_sampling) for chrom_ in chroms_in_prior for option_correl__ in selected_combinations if option_correl__ == option_correl_select]
+			p.map(MOG.executor, arguments)
 
-			def calculate_kern(sample_, bins, band = "scott"):
-				import kern_density_est
+			posterior_ = {}
+			import classifiers_clean	
 
-				prob_, bins_ = kern_density_est.kern_scipy_gaus(sample_, "g", bins, bandwidth = band, plot_atr = True)
-
-				return prob_, bins_
-
-			#config_variables.test_prior = False
-			reload(config_variables)
-			reload(MOG)
-			#bla = p.map(MOG.executor, arguments)
-			bla = []
-			for i in arguments:
-				bla += MOG.executor(i)
-			#plt.hist(bla, bins = 200, normed=True)
-			import plot_histograms_figures_MOG
-			pr, bi = calculate_kern(bla, bins = prior_elements[mode]["MOG_distance"]["prior_bins"], band = 0.025)
-			plot_histograms_figures_MOG.execute(prior_elements, bla, plot_atr, plot_atr_kernel)
-			#plt.plot(bi,pr)
-			plt.show()
+			if mode_of_sampler == "distance_prior":
+				posterior_["positive_interactions"], posterior_["negative_interactions"] = classifiers_clean.MOG_classifier(mode_of_sampler, number_of_samples = number_of_samples, burn_in = burn_in, pairwise_number_in_pack = 150/2)
+			else:
+				posterior_["positive_interactions"], posterior_["negative_interactions"] = {}, {}
+				comb = "_".join([dict_option[el] for el in option_correl_select])
+				posterior_["positive_interactions"][comb], posterior_["negative_interactions"][comb] = classifiers_clean.MOG_classifier(mode_of_sampler, comb = comb, kappa_0 = kappa_0, mu_0 = mu_0 , alpha_0 = alpha_0, Beta_0 = Beta_0, number_of_samples = number_of_samples, burn_in = burn_in, chain = chain_number)
 
 
-	elif mode_of_code == "MK_PAIRWISE":	
-		posterior_ = {}
-		import classifiers_clean	
 
-		if mode_of_sampler == "distance_prior":
-			posterior_["positive_interactions"], posterior_["negative_interactions"] = classifiers_clean.MOG_classifier(mode_of_sampler, number_of_samples = number_of_samples, burn_in = burn_in, pairwise_number_in_pack = 150/2)
+			if config_variables.test_prior:
+				import Gaussian_probs
+				prior_elements[mode]["MOG_distance"]["prior_frequencies"], prior_elements[mode]["MOG_distance"]["prior_bins"] = Gaussian_probs.executor(prior_elements, low_dist, up_dist)
+				config_variables.probabilities_of_a_bin = prior_elements[mode]["positive_interactions"]["distance"]["prior_frequencies"]/prior_elements[mode]["MOG_distance"]["prior_frequencies"]#prior_elements[mode]["positive_interactions"]["distance"]["prior_frequencies"]/(prior_elements[mode]["negative_interactions"]["distance"]["prior_frequencies"])# + prior_elements[mode]["positive_interactions"]["distance"]["prior_frequencies"])
+				from prepare_interactions_clean import un_string
+
+				def inter_enhancer(chrom):
+					negative_interactions = config_variables.negative_interactions
+					indexes_p, indexes_e, total_p, total_e = negative_interactions.initialise_variables(chrom)[2:]
+
+					if config_variables.disentagled_features_validation: 
+						chr_interactions_pro_enh = config_variables.chr_interactions_dict_pro_enh_TSS[chrom]
+					else:
+						chr_interactions_pro_enh = config_variables.chr_interactions_dict_pro_enh[chrom]
+
+					true_inter_pro = un_string(chr_interactions_pro_enh[:, :2]).astype(int)
+
+					i_s_t, j_s_t = true_inter_pro[:,0], true_inter_pro[:,1]
+					interacting_enhancers = np.unique(j_s_t)-total_e
+					return len(interacting_enhancers)
+		
+				arguments = [(mode_of_sampler, inter_enhancer(chrom_), option_correl__, chrom_, chain_number, continue_sampling) for chrom_ in chroms_in_prior for option_correl__ in selected_combinations if option_correl__ == option_correl_select]
+
+				def calculate_kern(sample_, bins, band = "scott"):
+					import kern_density_est
+
+					prob_, bins_ = kern_density_est.kern_scipy_gaus(sample_, "g", bins, bandwidth = band, plot_atr = True)
+
+					return prob_, bins_
+
+				#config_variables.test_prior = False
+				reload(config_variables)
+				reload(MOG)
+				#bla = p.map(MOG.executor, arguments)
+				bla = []
+				for i in arguments:
+					bla += MOG.executor(i)
+				#plt.hist(bla, bins = 200, normed=True)
+				import plot_histograms_figures_MOG
+				pr, bi = calculate_kern(bla, bins = prior_elements[mode]["MOG_distance"]["prior_bins"], band = 0.025)
+				plot_histograms_figures_MOG.execute(prior_elements, bla, plot_atr, plot_atr_kernel)
+				#plt.plot(bi,pr)
+				plt.show()
+
+
+		elif mode_of_code == "MK_PAIRWISE":	
+			posterior_ = {}
+			import classifiers_clean	
+
+			if mode_of_sampler == "distance_prior":
+				posterior_["positive_interactions"], posterior_["negative_interactions"] = classifiers_clean.MOG_classifier(mode_of_sampler, number_of_samples = number_of_samples, burn_in = burn_in, pairwise_number_in_pack = 150/2)
+			else:
+				posterior_["positive_interactions"], posterior_["negative_interactions"] = {}, {}
+				comb = "_".join([dict_option[el] for el in option_correl_select])
+				posterior_["positive_interactions"][comb], posterior_["negative_interactions"][comb] = classifiers_clean.MOG_classifier(mode_of_sampler, comb = comb, kappa_0 = kappa_0, mu_0 = mu_0 , alpha_0 = alpha_0, Beta_0 = Beta_0, number_of_samples = number_of_samples, burn_in = burn_in, chain = chain_number)
+
+		elif mode_of_code == "convergence_checker":
+			import convergence_checker as conv 
+			conv.convergence_checker(number_of_samples_arr, burn_in_start) 
+
 		else:
-			posterior_["positive_interactions"], posterior_["negative_interactions"] = {}, {}
-			comb = "_".join([dict_option[el] for el in option_correl_select])
-			posterior_["positive_interactions"][comb], posterior_["negative_interactions"][comb] = classifiers_clean.MOG_classifier(mode_of_sampler, comb = comb, kappa_0 = kappa_0, mu_0 = mu_0 , alpha_0 = alpha_0, Beta_0 = Beta_0, number_of_samples = number_of_samples, burn_in = burn_in, chain = chain_number)
-
-	elif mode_of_code == "convergence_checker":
-		import convergence_checker as conv 
-		conv.convergence_checker(number_of_samples_arr, burn_in_start)
-
-	else:
 
 
-		posterior = {}
-		type_of_models = ["dist", "correl", "correl_dist"]
-		if MoG_classificator: type_of_models += ["MOG_dist", "MOG_correl_dist"]
+			posterior = {}
+			type_of_models = ["dist", "correl", "correl_dist"]
+			if MoG_classificator: type_of_models += ["MOG_dist", "MOG_correl_dist"]
 
-		for classification_of_interactions in ["positive_interactions", "negative_interactions"]: 
-			posterior[classification_of_interactions] = {}
-			for type_of_model in type_of_models:
-				posterior[classification_of_interactions][type_of_model] = {}
+			for classification_of_interactions in ["positive_interactions", "negative_interactions"]: 
+				posterior[classification_of_interactions] = {}
+				for type_of_model in type_of_models:
+					posterior[classification_of_interactions][type_of_model] = {}
 
-		posterior["positive_interactions"]["dist"], posterior["negative_interactions"]["dist"] = classifiers_clean.posterior_producer([0], [])
+			posterior["positive_interactions"]["dist"], posterior["negative_interactions"]["dist"] = classifiers_clean.posterior_producer([0], [])
 
-		if "MOG_dist" in type_of_models: posterior["positive_interactions"]["MOG_dist"], posterior["negative_interactions"]["MOG_dist"] = classifiers_clean.MOG_classifier("distance_prior", number_of_samples = number_of_samples_dist, burn_in = burn_in_dist, chain = chain_number_dist) #infered_elements['promoter_enhancer_interactions']["positive_interactions"]["distance"]['probabilities_of_being_positive_interactions'], infered_elements['promoter_enhancer_interactions']["negative_interactions"]["distance"]['probabilities_of_being_positive_interactions']  #
+			if "MOG_dist" in type_of_models: posterior["positive_interactions"]["MOG_dist"], posterior["negative_interactions"]["MOG_dist"] = classifiers_clean.MOG_classifier("distance_prior", number_of_samples = number_of_samples_dist, burn_in = burn_in_dist, chain = chain_number_dist) #infered_elements['promoter_enhancer_interactions']["positive_interactions"]["distance"]['probabilities_of_being_positive_interactions'], infered_elements['promoter_enhancer_interactions']["negative_interactions"]["distance"]['probabilities_of_being_positive_interactions']  #
 
-		if MoG_classificator: combinations, selected_combinations = sel.selected_combinations("SELECTIVE")
-		else: combinations, selected_combinations = sel.selected_combinations("ALL")
+			if MoG_classificator: combinations, selected_combinations = sel.selected_combinations("SELECTIVE")
+			else: combinations, selected_combinations = sel.selected_combinations("ALL")
 
-		for ind, option_ in enumerate(selected_combinations):
-			comb = "_".join([dict_option[el] for el in option_])
-			posterior["positive_interactions"]["correl_dist"][comb], posterior["negative_interactions"]["correl_dist"][comb] = classifiers_clean.posterior_producer([0], option_)
-			posterior["positive_interactions"]["correl"][comb], posterior["negative_interactions"]["correl"][comb] = classifiers_clean.posterior_producer([], option_)		
+			for ind, option_ in enumerate(selected_combinations):
+				comb = "_".join([dict_option[el] for el in option_])
+				posterior["positive_interactions"]["correl_dist"][comb], posterior["negative_interactions"]["correl_dist"][comb] = classifiers_clean.posterior_producer([0], option_)
+				posterior["positive_interactions"]["correl"][comb], posterior["negative_interactions"]["correl"][comb] = classifiers_clean.posterior_producer([], option_)		
 
-			if "MOG_correl_dist" in type_of_models: posterior["positive_interactions"]["MOG_correl_dist"][comb], posterior["negative_interactions"]["MOG_correl_dist"][comb] = classifiers_clean.MOG_classifier("distance_MOG_empir_mu", comb = comb, kappa_0 = kappa_0, mu_0 = mu_0 , alpha_0 = alpha_0, Beta_0 = Beta_0, number_of_samples = number_of_samples_correl[ind], burn_in = burn_in_correl[ind], chain = chain_number_correl[ind])
+				if "MOG_correl_dist" in type_of_models: posterior["positive_interactions"]["MOG_correl_dist"][comb], posterior["negative_interactions"]["MOG_correl_dist"][comb] = classifiers_clean.MOG_classifier("distance_MOG_empir_mu", comb = comb, kappa_0 = kappa_0, mu_0 = mu_0 , alpha_0 = alpha_0, Beta_0 = Beta_0, number_of_samples = number_of_samples_correl[ind], burn_in = burn_in_correl[ind], chain = chain_number_correl[ind])
 
-		if mode_of_code == "ODD" or mode_of_code == "EVEN":
+			if mode_of_code == "ODD" or mode_of_code == "EVEN":
 
-			#import PR_top
-			#PR_top.execute()
-			#import PR_top_MAP_dots
-			import MAP_invoker
-			#MAP_probabilites, infered_elements, match_MAP, sensitivity_match_MAP = MAP_invoker.executor(posterior, type_of_models)
-			match_MAP, sensitivity_match_MAP, MAP_probabilites, infered_elements_MAP, probabilities_for_promoters_of_interacting_enhancers = MAP_invoker.executor(posterior, selected_combinations, type_of_models)
-			import PR_top_MAP_dots_alternative_domain
+				#import PR_top
+				#PR_top.execute()
+				#import PR_top_MAP_dots
+				import MAP_invoker
+				#MAP_probabilites, infered_elements, match_MAP, sensitivity_match_MAP = MAP_invoker.executor(posterior, type_of_models)
+				match_MAP, sensitivity_match_MAP, MAP_probabilites, infered_elements_MAP, probabilities_for_promoters_of_interacting_enhancers = MAP_invoker.executor(posterior, selected_combinations, type_of_models)
+				import PR_top_MAP_dots_alternative_domain
 
-			for PR_CURVES in np.array(["SELECTIVE", "ALL"])[:1]:
-				if MoG_classificator and PR_CURVES == "ALL": continue
-				#PR_top_MAP_dots_alternative_domain.execute(sensitivity_match_MAP, number_of_interacting_enhancers_ = np.sum([len(match_MAP["dist"][chrom_]) for chrom_ in chroms_to_infer]), option_to_plot = PR_CURVES, type_of_models=type_of_models, posterior_MOG = posterior, kappa_0=kappa_0, mu_0=mu_0, alpha_0=alpha_0, Beta_0=Beta_0, number_of_samples = [number_of_samples_dist] + number_of_samples_correl, burn_in = [burn_in_dist] + burn_in_correl)
-				if MoG_classificator: type_of_models = ["correl_dist", "MOG_correl_dist","MOG_dist"]
-				if MoG_classificator: type_of_models = ["dist", "MOG_dist"]
+				for PR_CURVES in np.array(["SELECTIVE", "ALL"]):
+					if MoG_classificator and PR_CURVES == "ALL": continue
+					#PR_top_MAP_dots_alternative_domain.execute(sensitivity_match_MAP, number_of_interacting_enhancers_ = np.sum([len(match_MAP["dist"][chrom_]) for chrom_ in chroms_to_infer]), option_to_plot = PR_CURVES, type_of_models=type_of_models, posterior_MOG = posterior, kappa_0=kappa_0, mu_0=mu_0, alpha_0=alpha_0, Beta_0=Beta_0, number_of_samples = [number_of_samples_dist] + number_of_samples_correl, burn_in = [burn_in_dist] + burn_in_correl)
+					if MoG_classificator: type_of_models = ["correl_dist", "MOG_correl_dist","MOG_dist"]
+					if MoG_classificator: type_of_models = ["dist", "MOG_dist"]
 
-				PR_top_MAP_dots_alternative_domain.execute(sensitivity_match_MAP, number_of_interacting_enhancers_ = np.sum([len(match_MAP["dist"][chrom_]) for chrom_ in chroms_to_infer]), option_to_plot = PR_CURVES, type_of_models = type_of_models, posterior_MOG = posterior, kappa_0=kappa_0, mu_0=mu_0, alpha_0=alpha_0, Beta_0=Beta_0, number_of_samples = [number_of_samples_dist] + number_of_samples_correl, burn_in = [burn_in_dist] + burn_in_correl)#"correl_dist","MOG_correl_dist"]
+					PR_top_MAP_dots_alternative_domain.execute(sensitivity_match_MAP, number_of_interacting_enhancers_ = np.sum([len(match_MAP["dist"][chrom_]) for chrom_ in chroms_to_infer]), option_to_plot = PR_CURVES, type_of_models = type_of_models, posterior_MOG = posterior, kappa_0=kappa_0, mu_0=mu_0, alpha_0=alpha_0, Beta_0=Beta_0, number_of_samples = [number_of_samples_dist] + number_of_samples_correl, burn_in = [burn_in_dist] + burn_in_correl)#"correl_dist","MOG_correl_dist"]
 
 
-		if mode_of_code == "FULL":
-			#import MAP_clustering_labels_clean
-			#MAP_clustering_labels_clean.executor(MAP_probabilites_correl_dist, infered_elements_correl_dist)
+			if mode_of_code == "FULL":
+				#import MAP_clustering_labels_clean
+				#MAP_clustering_labels_clean.executor(MAP_probabilites_correl_dist, infered_elements_correl_dist)
 
-			import TOP_FDR_PR_gene_list_clean
-			TOP_FDR_PR_gene_list_clean.executor(selection_option = option_for_predictive_FULL_mode)
-			import TOP_FDR_PR_table_clean
-			TOP_FDR_PR_table_clean.executor(selection_option = option_for_predictive_FULL_mode)
+				import TOP_FDR_PR_gene_list_clean
+				TOP_FDR_PR_gene_list_clean.executor(selection_option = option_for_predictive_FULL_mode)
+				import TOP_FDR_PR_table_clean
+				TOP_FDR_PR_table_clean.executor(selection_option = option_for_predictive_FULL_mode)
 	
-			import script_python_analys_PR
-			script_python_analys_PR.executor(selection_option = option_for_predictive_FULL_mode, FDR_level = genes_predicted_with_FDR_for_GRO_seq_validation)
+				import script_python_analys_PR
+				script_python_analys_PR.executor(selection_option = option_for_predictive_FULL_mode, FDR_level = genes_predicted_with_FDR_for_GRO_seq_validation)
 
-			#import MAP_interaction_plotter_clean
-			#MAP_interaction_plotter_clean.executor(MAP_probabilites_correl_dist, infered_elements_correl_dist, match_MAP_correl_dist)
-			import TOP_PR_interaction_plotter_clean
-			TOP_PR_interaction_plotter_clean.executor(selection_option = option_for_predictive_FULL_mode, chrom_to_plot = TOP_PR_interaction_plotter_clean_chrom_to_plot, FDR_thresholds_to_plot = TOP_PR_interaction_plotter_FDR_thresholds_to_plot, calculate_number_of_within_domain_interactions = calculate_number_of_within_domain_interactions)
+				#import MAP_interaction_plotter_clean
+				#MAP_interaction_plotter_clean.executor(MAP_probabilites_correl_dist, infered_elements_correl_dist, match_MAP_correl_dist)
+				import TOP_PR_interaction_plotter_clean
+				TOP_PR_interaction_plotter_clean.executor(selection_option = option_for_predictive_FULL_mode, chrom_to_plot = TOP_PR_interaction_plotter_clean_chrom_to_plot, FDR_thresholds_to_plot = TOP_PR_interaction_plotter_FDR_thresholds_to_plot, calculate_number_of_within_domain_interactions = calculate_number_of_within_domain_interactions)
 
 

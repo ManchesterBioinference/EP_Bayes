@@ -93,7 +93,7 @@ def executor(selection_option, FDR_level):
 		ax = fig.add_subplot(111)
 		simpleaxis(ax)
 
-		for FDR in ("0,001", "0,05", "0,01"):
+		for FDR in ("0,001", "0,01", "0,05"):
 			SEQ_genes = np.loadtxt(data_folder + "{0}seq_DE_{1}.csv.gz".format(data_set, FDR), dtype = str)
 			#------------distance
 			c=colours.next()

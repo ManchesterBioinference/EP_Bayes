@@ -17,7 +17,7 @@ def executor(merged_time_series_to_cluster, upstream_TSS = 0, downstream_TSS = 0
 
 	elif mode_of_data_sets == "Others_from_cistrom_finder": name_of_files = np.loadtxt(pwd + "/" + hg + "/list_of_files.txt", dtype = str)
 
-	path_to_R = pwd + "/R_scripts/"
+	path_to_R = pwd + "/R_scripts/AP_clustering_output/"
 
 	survived = np.loadtxt(path_to_R + '{0}_survived_indexes'.format(merged_time_series_to_cluster)).astype(int) # saved during filtering
 

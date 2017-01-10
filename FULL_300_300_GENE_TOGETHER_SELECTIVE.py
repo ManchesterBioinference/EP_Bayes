@@ -8,3 +8,5 @@ mode_of_code = ["ODD", "EVEN", "FULL"][2]
 mode_of_features_and_interactions = ["FEATURES_AND_INTERACTIONS_TOGETHER", "FEATURES_AND_INTERACTIONS_SEPERATE"][0]
 
 ENHANCER_GENE_INTERACTOR.executor(PR_CURVES, mode_of_code, mode_of_features_and_interactions, redo_raw_CHIA_PET_interactions = False, upstream = 300)
+
+

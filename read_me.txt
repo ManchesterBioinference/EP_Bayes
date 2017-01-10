@@ -1,19 +1,14 @@
 #In order to reproduce the figures in the paper please run:
 
-python EVEN_300_300_GENE_TOGETHER_SELECTIVE.py
-python ODD_300_300_GENE_TOGETHER_SELECTIVE.py
-python FULL_300_300_GENE_TOGETHER_SELECTIVE.py
+python EVEN_300_300_GENE_TOGETHER_SELECTIVE.py; python ODD_300_300_GENE_TOGETHER_SELECTIVE.py; python FULL_300_300_GENE_TOGETHER_SELECTIVE.py
 
 #to reproduce figures from the suplementary please run:
 
-python EVEN_1500_300_GENE_TOGETHER_SELECTIVE.py
-python ODD_1500_300_GENE_TOGETHER_SELECTIVE.py
-python FULL_1500_300_GENE_TOGETHER_SELECTIVE.py
+python EVEN_1500_300_GENE_SEPERATE_SELECTIVE.py; python ODD_1500_300_GENE_SEPERATE_SELECTIVE.py; python FULL_1500_300_GENE_SEPERATE_SELECTIVE.py
 
-python EVEN_1500_1500_TSS_SEPERATE_SELECTIVE.py
-python ODD_1500_1500_TSS_SEPERATE_SELECTIVE.py
-python FULL_1500_1500_TSS_SEPERATE_SELECTIVE.py
+python EVEN_1500_1500_TSS_SEPERATE_SELECTIVE.py; python ODD_1500_1500_TSS_SEPERATE_SELECTIVE.py; python FULL_1500_1500_TSS_SEPERATE_SELECTIVE.py
 
+python AP_CLUSTERING_REPRODUCE.py #choose the option to plot/cluster. After plotting/clustering all options you can run TF_enrichments
 
 #to cluster time series run 
 python clustering_figures.py

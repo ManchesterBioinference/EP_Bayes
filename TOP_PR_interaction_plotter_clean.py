@@ -348,13 +348,13 @@ def executor(selection_option, chrom_to_plot, FDR_thresholds_to_plot, calculate_
 	#line, = ax.plot(x, np.zeros_like(x) + 40., lw = 1.5, color='blue')
 	line, = ax.plot(x, np.zeros_like(x) + level_of_enhancer, lw = 1.0, color='black')
 
-	filtered_ehnacers_mask_survived_count = np.zeros_like(enhancer_chroms).astype(bool)
-	filtered_ehnacers_mask_survived_dist = np.zeros_like(enhancer_chroms).astype(bool)
+	filtered_ehnacers_mask_survived_count = np.zeros(len(enhancer_chroms)).astype(bool)
+	filtered_ehnacers_mask_survived_dist = np.zeros(len(enhancer_chroms)).astype(bool)
 	filtered_ehnacers_mask_survived_count[chrom_enh_survived] = True
 	filtered_ehnacers_mask_survived_dist[chrom_distant_enh] = True
 	filtered_ehnacers_mask_survived = filtered_ehnacers_mask_survived_count*filtered_ehnacers_mask_survived_dist
 
-	filtered_promoters_mask_survived = np.zeros_like(promoter_chroms).astype(bool)
+	filtered_promoters_mask_survived = np.zeros(len(promoter_chroms)).astype(bool)
 	filtered_promoters_mask_survived[dict_chrom_pro_survived[chrom]] = True
 	for gene in gene_names[filtered_promoters_mask_survived*(promoter_chroms == chrom)]:
 		coords, gene_name, strand = gene[1:3].astype(float), gene[3], gene[4]
