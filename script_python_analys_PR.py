@@ -87,6 +87,11 @@ def executor(selection_option, FDR_level):
 		
 	colours = iter(["b", "g", "r"]*2)#iter(plt.rcParams['axes.color_cycle'])
 
+	plt.rcParams['xtick.labelsize'] = 18
+	plt.rc('ytick', labelsize=18)	
+		#plt.rc('xtick', labelsize=20)	
+	plt.rcParams['figure.figsize'] = 15, 10 #figsize=(20,10)
+
 	def plotter(data_set):
 
 		fig = plt.figure()
@@ -111,11 +116,6 @@ def executor(selection_option, FDR_level):
 			#Percent_of_DE_genes = np.in1d(gene_names, SEQ_genes).sum()/float(len(gene_names))
 
 			#print Percent_of_DE_genes
-
-		plt.rcParams['xtick.labelsize'] = 18
-		plt.rc('ytick', labelsize=18)	
-		#plt.rc('xtick', labelsize=20)	
-		plt.rcParams['figure.figsize'] = 15, 10 #figsize=(20,10)
 
 		plt.xlabel('Recall(TPR)', fontsize=20)
 		plt.ylabel('Precision', fontsize=20)

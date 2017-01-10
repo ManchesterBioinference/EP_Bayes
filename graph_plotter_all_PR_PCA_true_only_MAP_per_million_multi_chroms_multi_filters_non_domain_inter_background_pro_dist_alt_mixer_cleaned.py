@@ -24,7 +24,7 @@ def executor(PR_CURVES = "SELECTIVE", mode_of_code = "EVEN", mode_of_features_an
 		#PR_CURVES = "SELECTIVE"
 		mode_of_code = ["ODD","EVEN", "FULL", "GAUSSIAN_SAMPLE", "MK_PAIRWISE", "CLUSTERING"][-1]
 		mode_of_code_2 = ["WITHOUT", "ADD_GAUSSIAN_VALIDATION"][0]
-		mode_of_features_and_interactions = "FEATURES_AND_INTERACTIONS_SEPERATE"
+		mode_of_features_and_interactions = ["FEATURES_AND_INTERACTIONS_TOGETHER","FEATURES_AND_INTERACTIONS_SEPERATE"][0]
 		GENE_OR_PROMOTER_MODE = "GENE_MODE"
 		redo_raw_CHIA_PET_interactions = False
 		mode_atr = ["FIRST_TS", "SECOND_TS"][1]
